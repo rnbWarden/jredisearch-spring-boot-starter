@@ -1,6 +1,6 @@
 :checkedbox: pass:normal[{startsb}&#10004;{endsb}]
 
-= Bluestem JRediSearch Spring Boot Starter
+= JRediSearch Spring Boot Starter
 
 (jredisearch-spring-boot-starter)
 
