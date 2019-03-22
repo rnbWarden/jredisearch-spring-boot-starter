@@ -39,8 +39,8 @@ Annotate your fields on RediSearch beans as follows:
 example
 [source,java]
 ----
-@RediSearchField(name= BrandChannelRediSearchClient.BRAND, type = RediSearchFieldType.TAG)
-private BrandCode brand;
+@RediSearchField(name= CartType.SHOPPING, type = RediSearchFieldType.TAG)
+private CartType type;
 ----
 
 At runtime a JRedisearch Client will be created for your entity and the corresponding index created at application startup.
