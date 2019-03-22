@@ -14,7 +14,7 @@ analogous to the Riak DomainBucket abstraction.
 == Configuration
 Leverages the existing Spring Data Redis properties.
 
-*Requires Jedis vs. Spring Boot Default redis client Lettuce.*
+* * * Requires Jedis vs. Spring Boot Default redis client Lettuce. * * *
 
 Within `build.gradle`
 You will need to include the dependency.
