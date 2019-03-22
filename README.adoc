@@ -6,9 +6,8 @@
 
 == Purpose
 
-This spring boot starter provides a Spring Boot starter to handle setup and configuration of JRediSearch clients and indexes.
-It includes functionality for creating RediSearchClients (for annotated RediSearchEntities) which provides for CRUD operations
-analogous to the Riak DomainBucket abstraction.
+This starter provides a Spring Boot starter to handle setup and configuration of JRediSearch clients and indexes.
+It includes functionality for creating RediSearchClients for annotated RediSearchEntities. The RediSearchClient is an abstraction layer that provides CRUD operations on top of the client-specific RediSearch implementation.
 
 
 == Configuration
