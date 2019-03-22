@@ -1,0 +1,59 @@
+:checkedbox: pass:normal[{startsb}&#10004;{endsb}]
+
+= Bluestem JRediSearch Spring Boot Starter
+
+(jredisearch-spring-boot-starter)
+
+== Purpose
+
+This spring boot starter provides a Spring Boot starter to handle setup and configuration of JRediSearch clients and indexes.
+It includes functionality for creating RediSearchClients (for annotated RediSearchEntities) which provides for CRUD operations
+analogous to the Riak DomainBucket abstraction.
+
+
+== Configuration
+Leverages the existing Spring Data Redis properties.
+
+*Requires Jedis vs. Spring Boot Default redis client Lettuce.*
+
+Within `build.gradle`
+You will need to include the dependency.
+----
+compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter'
+----
+
+Annotate your beans as follows:
+[source,java]
+----
+@RediSearchEntity(name = "${your-index-name-here}")
+----
+
+Annotate your fields on RediSearch beans as follows:
+[source,java]
+----
+@RediSearchField(name = "{your-index-column-name-here}") //TEXT type by default
+/** or */
+@RediSearchField(name= "{your-index-column-name-here}", type = RediSearchFieldType.TAG)
+----
+
+example
+[source,java]
+----
+@RediSearchField(name= BrandChannelRediSearchClient.BRAND, type = RediSearchFieldType.TAG)
+private BrandCode brand;
+----
+
+At runtime a JRedisearch Client will be created for your entity and the corresponding index created at application startup.
+Additionally, two beans will be created and injected into the Spring BeanFactory:
+
+  "{simpleName}" + Client
+  "{simpleName}" + RedisSerializer
+
+...where simpleName is the lower camel case version of the Entity class simple name.
+
+
+== References
+
+* https://oss.redislabs.com/redisearch/Quick_Start.html [Using RediSearch]
+* https://github.com/RediSearch/JRediSearch [JRediSearch client]
+
