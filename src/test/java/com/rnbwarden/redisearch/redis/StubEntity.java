@@ -1,5 +1,7 @@
 package com.rnbwarden.redisearch.redis;
 
+import com.rnbwarden.redisearch.redis.entity.RediSearchEntity;
+import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

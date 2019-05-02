@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.redis;
+package com.rnbwarden.redisearch.redis.entity;
 
 import com.redislabs.lettusearch.search.field.TextField;
 import io.redisearch.Schema;

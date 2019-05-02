@@ -37,13 +37,11 @@ bootJar.enabled=false
 jar.enabled=true
 
 group 'com.rnbwarden'
-//noinspection GroovyUnusedAssignment
 sourceCompatibility = 1.8
-//noinspection GroovyUnusedAssignment
 targetCompatibility = 1.8
 
 repositories {
-    maven { url "$artifactory_contexturl/$artifactory_repo" }
+//    maven { url "$artifactory_contexturl/$artifactory_repo" }
     maven { url "http://repo.spring.io/libs-snapshot" }
 }
 
@@ -77,8 +75,8 @@ dependencies {
     compile 'org.springframework.data:spring-data-redis:2.2.0.M2'
     compile 'redis.clients:jedis:3.0.1'
     compile 'com.redislabs:jredisearch:0.25.0'
-    compile 'com.redislabs:spring-redisearch:1.1.0'
-    compile 'com.redislabs:lettusearch:1.1.1'
+    compile 'com.redislabs:spring-redisearch:1.1.2'
+    compile 'com.redislabs:lettusearch:1.1.10'
 
     testCompile 'org.springframework.boot:spring-boot-starter-test:2.1.2.RELEASE'
     testCompile 'org.mockito:mockito-core:2.24.0'

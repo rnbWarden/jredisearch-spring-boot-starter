@@ -1,8 +1,9 @@
-package com.rnbwarden.redisearch.redis;
+package com.rnbwarden.redisearch.redis.client;
 
-import io.redisearch.Query;
-import io.redisearch.SearchResult;
-import io.redisearch.querybuilder.QueryNode;
+
+import com.rnbwarden.redisearch.CompressingJacksonSerializer;
+import com.rnbwarden.redisearch.redis.client.options.RediSearchOptions;
+import com.rnbwarden.redisearch.redis.entity.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,15 +17,12 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.redisearch.querybuilder.QueryBuilder.intersect;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
-import static java.util.Collections.emptyList;
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.reflect.FieldUtils.getAllFieldsList;
 
-public abstract class AbstractRediSearchClient<E extends /**RediSearchEntity &*/RedisSearchableEntity> implements RediSearchClient<E> {
+public abstract class AbstractRediSearchClient<E extends /**RediSearchEntity &*/RedisSearchableEntity, S extends RediSearchOptions> implements RediSearchClient<E, S> {
 
     public static final String ID = "id";
     protected static final String SERIALIZED_DOCUMENT = "sdoc";
@@ -33,19 +31,20 @@ public abstract class AbstractRediSearchClient<E extends /**RediSearchEntity &*/
     private final Logger logger = LoggerFactory.getLogger(AbstractRediSearchClient.class);
 
     @Value("${redis.search.defaultResultLimit:0x7fffffff}")
-    protected int defaultMaxValue;
+    protected Long defaultMaxValue;
 
     protected final RedisSerializer<E> redisSerializer;
     protected final List<SearchableField<E>> fields;
     protected final Class<E> clazz;
 
     protected final Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, ? extends SearchableField<E>>> fieldStrategy = new HashMap<>();
+
     {
         fieldStrategy.put(RediSearchFieldType.TEXT, SearchableTextField::new);
         fieldStrategy.put(RediSearchFieldType.TAG, SearchableTagField::new);
     }
 
-    public AbstractRediSearchClient(CompressingJacksonRedisSerializer<E> redisSerializer) {
+    public AbstractRediSearchClient(CompressingJacksonSerializer<E> redisSerializer) {
 
         this.redisSerializer = redisSerializer;
         this.clazz = redisSerializer.getClazz();
@@ -88,7 +87,7 @@ public abstract class AbstractRediSearchClient<E extends /**RediSearchEntity &*/
 
             return o;
         } catch (IllegalAccessException e) {
-            throw new IllegalStateException(format("Unable to get RediSearch annotated field value for field: %s of class: %s", f.getName(), obj.getClass()), e);
+            throw new IllegalStateException(format("Unable to get RediSearch annotated entity value for entity: %s of class: %s", f.getName(), obj.getClass()), e);
         }
     }
 
@@ -97,12 +96,12 @@ public abstract class AbstractRediSearchClient<E extends /**RediSearchEntity &*/
         return fields;
     }
 
-    private SearchableField<E> getField(String name) {
+    protected SearchableField<E> getField(String name) {
 
         return fields.stream()
                 .filter(f -> f.getName().equals(name))
                 .findAny()
-                .orElseThrow(() -> new IllegalArgumentException("invalid field name: " + name));
+                .orElseThrow(() -> new IllegalArgumentException("invalid entity name: " + name));
     }
 
     protected Map<String, Object> serialize(E entity) {
@@ -114,47 +113,23 @@ public abstract class AbstractRediSearchClient<E extends /**RediSearchEntity &*/
     }
 
     @Override
-    public SearchResult findAll(Integer offset,
-                                Integer limit,
-                                boolean includeContent) {
-
-        offset = ofNullable(offset).orElse(0);
-        limit = ofNullable(limit).orElse(defaultMaxValue);
-
-        Query query = new Query(ALL_QUERY)
-                .limit(offset, limit);
-
-        if (!includeContent) {
-            query.setNoContent();
-        }
-
-        return performTimedOperation("findAll", () -> search(query));
-    }
-
-    @Override
     public Long getKeyCount() {
 
-        return findAll(0, 0, false).totalResults;
+        return findAll(0, 0, false).getTotalResults();
     }
 
-    protected abstract SearchResult search(Query query);
-
-    protected Query intersectQueryBuilder(Map<String, String> fieldNameValues) {
-
-        QueryNode node = intersect();
-        fieldNameValues.forEach((name, value) -> node.add(name, getField(name).getQuerySyntax(value)));
-        return new Query(node.toString());
-    }
+    public abstract RediSearchOptions getRediSearchOptions();
 
     protected List<E> deserialize(SearchResult searchResult) {
 
         return Optional.of(searchResult)
-                .map(sr -> sr.docs.stream()
-                        .map(document -> (byte[]) document.get(SERIALIZED_DOCUMENT))
+                .map(sr -> sr.getFieldsByKey(SERIALIZED_DOCUMENT))
+                .map(byteList -> byteList.stream()
                         .filter(Objects::nonNull)
+                        .map(bytes -> (byte[]) bytes)
                         .map(redisSerializer::deserialize)
                         .collect(toList()))
-                .orElse(emptyList());
+                .orElseGet(Collections::emptyList);
     }
 
     /**

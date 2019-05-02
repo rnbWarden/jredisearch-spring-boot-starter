@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.redis;
+package com.rnbwarden.redisearch.redis.entity;
 
 import com.redislabs.lettusearch.search.field.Field;
 import io.redisearch.Schema;
@@ -12,9 +12,9 @@ public abstract class SearchableField<E> {
     private final com.redislabs.lettusearch.search.field.Field lettuceField;
     private final Function<E, Object> serializeFunction;
 
-    public SearchableField(Schema.Field jettisField,
-                           com.redislabs.lettusearch.search.field.Field lettuceField,
-                           Function<E, Object> serializeFunction) {
+    SearchableField(Schema.Field jettisField,
+                    com.redislabs.lettusearch.search.field.Field lettuceField,
+                    Function<E, Object> serializeFunction) {
 
         this.name = jettisField.name;
         this.jettisField = jettisField;

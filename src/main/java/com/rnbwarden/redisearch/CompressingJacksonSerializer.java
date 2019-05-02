@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.redis;
+package com.rnbwarden.redisearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.output.ByteArrayOutputStream;
@@ -14,13 +14,13 @@ import java.util.zip.GZIPOutputStream;
 
 import static java.lang.System.currentTimeMillis;
 
-public class CompressingJacksonRedisSerializer<T> extends Jackson2JsonRedisSerializer<T> {
+public class CompressingJacksonSerializer<T> extends Jackson2JsonRedisSerializer<T> {
 
     private static final int WORK_BUFFER_SIZE = 8192;
-    private final Logger logger = LoggerFactory.getLogger(CompressingJacksonRedisSerializer.class);
+    private final Logger logger = LoggerFactory.getLogger(CompressingJacksonSerializer.class);
     private final Class<T> clazz;
 
-    public CompressingJacksonRedisSerializer(Class<T> type, ObjectMapper objectMapper) {
+    public CompressingJacksonSerializer(Class<T> type, ObjectMapper objectMapper) {
 
         super(type);
         setObjectMapper(objectMapper);
@@ -28,7 +28,7 @@ public class CompressingJacksonRedisSerializer<T> extends Jackson2JsonRedisSeria
     }
 
     /**
-    public CompressingJacksonRedisSerializer(JavaType javaType, ObjectMapper objectMapper) {
+    public CompressingJacksonSerializer(JavaType javaType, ObjectMapper objectMapper) {
 
         super(javaType);
         setObjectMapper(objectMapper);

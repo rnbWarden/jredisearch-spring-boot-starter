@@ -1,8 +1,8 @@
 package com.rnbwarden.redisearch.autoconfiguration.redis;
 
-import com.rnbwarden.redisearch.redis.AbstractRediSearchClient;
-import com.rnbwarden.redisearch.redis.CompressingJacksonRedisSerializer;
-import com.rnbwarden.redisearch.redis.RediSearchEntity;
+import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
+import com.rnbwarden.redisearch.CompressingJacksonSerializer;
+import com.rnbwarden.redisearch.redis.entity.RediSearchEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.redisearch.client.Client;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -96,7 +96,7 @@ public class RediSearchAutoConfiguration implements BeanFactoryAware, Applicatio
             simpleName = Character.toLowerCase(simpleName.charAt(0)) + simpleName.substring(1);
 
             beanFactory.registerSingleton(simpleName + "Client", client);
-            beanFactory.registerSingleton(simpleName + "RedisSerializer", new CompressingJacksonRedisSerializer<>(clazz, primaryObjectMapper));
+            beanFactory.registerSingleton(simpleName + "RedisSerializer", new CompressingJacksonSerializer<>(clazz, primaryObjectMapper));
 
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
