@@ -12,7 +12,7 @@ import static io.redisearch.querybuilder.QueryBuilder.intersect;
 
 @Data
 //@Builder
-public class LettuceRediSearchOptions extends RediSearchOptions {
+public class LettusearchOptions extends RediSearchOptions {
 
     private Map<String, String> fieldNameValues = new HashMap<>();
     private SearchOptions.SearchOptionsBuilder builder = SearchOptions.builder();

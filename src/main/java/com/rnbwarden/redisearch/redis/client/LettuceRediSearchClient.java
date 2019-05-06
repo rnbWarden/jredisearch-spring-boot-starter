@@ -3,7 +3,7 @@ package com.rnbwarden.redisearch.redis.client;
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
 import com.redislabs.lettusearch.search.*;
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
-import com.rnbwarden.redisearch.redis.client.options.LettuceRediSearchOptions;
+import com.rnbwarden.redisearch.redis.client.options.LettusearchOptions;
 import com.rnbwarden.redisearch.redis.client.options.RediSearchOptions;
 import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
 import com.rnbwarden.redisearch.redis.entity.SearchableField;
@@ -17,7 +17,7 @@ import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
 
-public abstract class LettuceRediSearchClient<E extends /**RediSearchEntity &*/RedisSearchableEntity> extends AbstractRediSearchClient<E, LettuceRediSearchOptions> {
+public abstract class LettuceRediSearchClient<E extends /**RediSearchEntity &*/RedisSearchableEntity> extends AbstractRediSearchClient<E, LettusearchOptions> {
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private final StatefulRediSearchConnection<String, Object> connection;
@@ -34,7 +34,7 @@ public abstract class LettuceRediSearchClient<E extends /**RediSearchEntity &*/R
     @Override
     public RediSearchOptions getRediSearchOptions() {
 
-        return new LettuceRediSearchOptions();
+        return new LettusearchOptions();
     }
 
     @Override
@@ -97,7 +97,7 @@ public abstract class LettuceRediSearchClient<E extends /**RediSearchEntity &*/R
         offset = ofNullable(offset).orElse(0);
         limit = ofNullable(limit).orElse(defaultMaxValue.intValue());
 
-        LettuceRediSearchOptions options = (LettuceRediSearchOptions) getRediSearchOptions();
+        LettusearchOptions options = (LettusearchOptions) getRediSearchOptions();
 //        options.setQuery(new Query(ALL_QUERY));
         options.setLimit(Long.valueOf(limit));
         options.setOffset(Long.valueOf(offset));
@@ -111,7 +111,7 @@ public abstract class LettuceRediSearchClient<E extends /**RediSearchEntity &*/R
                                      @Nullable Long offset,
                                      @Nullable Long limit) {
 
-        LettuceRediSearchOptions options = (LettuceRediSearchOptions) getRediSearchOptions();
+        LettusearchOptions options = (LettusearchOptions) getRediSearchOptions();
         options.setLimit(limit);
         options.setOffset(offset);
         return findByFields(fieldNameValues, options);
@@ -119,14 +119,14 @@ public abstract class LettuceRediSearchClient<E extends /**RediSearchEntity &*/R
 
     @Override
     public SearchResult findByFields(Map<String, String> fieldNameValues,
-                                     LettuceRediSearchOptions options) {
+                                     LettusearchOptions options) {
 
         fieldNameValues.forEach((name, value) -> options.addField(name, getField(name).getQuerySyntax(value)));
         return performTimedOperation("searchByFields", () -> search(options.buildSearchOptions()));
     }
 
     @Override
-    public SearchResult find(LettuceRediSearchOptions options) {
+    public SearchResult find(LettusearchOptions options) {
 
         return performTimedOperation("search", () -> search(options.buildSearchOptions()));
     }
