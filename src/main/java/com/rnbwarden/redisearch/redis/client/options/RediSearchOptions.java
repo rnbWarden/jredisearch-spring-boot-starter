@@ -3,7 +3,6 @@ package com.rnbwarden.redisearch.redis.client.options;
 import lombok.Data;
 
 @Data
-//@Builder
 public abstract class RediSearchOptions {
 
     static long defaultMaxValue = Long.MAX_VALUE;

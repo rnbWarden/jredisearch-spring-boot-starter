@@ -4,6 +4,7 @@ import com.redislabs.lettusearch.search.Limit;
 import com.redislabs.lettusearch.search.SearchOptions;
 import io.redisearch.Query;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +13,7 @@ import static io.redisearch.querybuilder.QueryBuilder.intersect;
 
 @Data
 //@Builder
+@EqualsAndHashCode(callSuper=false)
 public class LettusearchOptions extends RediSearchOptions {
 
     private Map<String, String> fieldNameValues = new HashMap<>();
