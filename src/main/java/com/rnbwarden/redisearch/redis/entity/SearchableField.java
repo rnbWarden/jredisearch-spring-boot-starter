@@ -11,15 +11,18 @@ public abstract class SearchableField<E> {
     private final Schema.Field jettisField;
     private final com.redislabs.lettusearch.search.field.Field lettuceField;
     private final Function<E, Object> serializeFunction;
+    private final String querySyntax;
 
     SearchableField(Schema.Field jettisField,
                     com.redislabs.lettusearch.search.field.Field lettuceField,
-                    Function<E, Object> serializeFunction) {
+                    Function<E, Object> serializeFunction,
+                    String querySyntax) {
 
         this.name = jettisField.name;
         this.jettisField = jettisField;
         this.lettuceField = lettuceField;
         this.serializeFunction = serializeFunction;
+        this.querySyntax = querySyntax;
     }
 
     public String getName() {
@@ -44,6 +47,6 @@ public abstract class SearchableField<E> {
 
     public String getQuerySyntax(String value) {
 
-        return String.format("%s", value);
+        return String.format(querySyntax, value);
     }
 }

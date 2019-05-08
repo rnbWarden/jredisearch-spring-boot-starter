@@ -7,11 +7,14 @@ import java.util.function.Function;
 
 public class SearchableTextField<E> extends SearchableField<E> {
 
+    private static final String QUERY_SYNTAX = "%s";
+
     public SearchableTextField(String name,
                                Function<E, Object> serializeFunction) {
 
         super(new Schema.TextField(name),
                 TextField.builder().name(name).build(),
-                serializeFunction);
+                serializeFunction,
+                QUERY_SYNTAX);
     }
 }

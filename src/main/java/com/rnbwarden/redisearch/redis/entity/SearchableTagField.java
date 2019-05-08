@@ -7,18 +7,14 @@ import java.util.function.Function;
 
 public class SearchableTagField<E> extends SearchableField<E> {
 
+    private static final String QUERY_SYNTAX = "{%s}";
+
     public SearchableTagField(String name,
                               Function<E, Object> serializeFunction) {
 
-
         super(new Schema.TextField(name),
                 TagField.builder().name(name).build(),
-                serializeFunction);
-    }
-
-    @Override
-    public String getQuerySyntax(String value) {
-
-        return String.format("{%s}", value);
+                serializeFunction,
+                QUERY_SYNTAX);
     }
 }
