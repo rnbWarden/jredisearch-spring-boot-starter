@@ -44,6 +44,6 @@ public abstract class SearchableField<E> {
 
     public String getQuerySyntax(String value) {
 
-        return "%s";
+        return String.format("%s", value);
     }
 }
