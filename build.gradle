@@ -8,6 +8,7 @@ plugins {
     id 'java'
     id 'idea'
     id "io.freefair.lombok" version "3.2.0"
+    id 'maven'
     id "nebula.release" version "6.1.1"
 //    id 'com.gorylenko.gradle-git-properties' version '1.4.17'
     id 'org.springframework.boot' version '2.1.2.RELEASE'
