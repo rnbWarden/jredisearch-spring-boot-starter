@@ -19,6 +19,6 @@ public class SearchableTagField<E> extends SearchableField<E> {
     @Override
     public String getQuerySyntax(String value) {
 
-        return "{%s}";
+        return String.format("{%s}", value);
     }
 }
