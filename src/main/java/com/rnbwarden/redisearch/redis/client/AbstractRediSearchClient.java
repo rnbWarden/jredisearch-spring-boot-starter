@@ -44,7 +44,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     }
 
     @PostConstruct
-    private void init() {
+    protected void init() {
 
         this.fields.addAll(getSearchableFields());
         checkAndCreateIndex();
