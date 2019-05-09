@@ -5,6 +5,9 @@ import com.redislabs.lettusearch.search.*;
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.redis.client.RediSearchOptions;
+import com.rnbwarden.redisearch.redis.client.jedis.SearchableJedisTagField;
+import com.rnbwarden.redisearch.redis.client.jedis.SearchableJedisTextField;
+import com.rnbwarden.redisearch.redis.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
 import com.rnbwarden.redisearch.redis.entity.SearchableField;
 import org.slf4j.Logger;
@@ -17,7 +20,7 @@ import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
 
-public abstract class LettuceRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, LettusearchOptions> {
+public abstract class LettuceRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, LettusearchOptions, SearchableLettuceField<E>> {
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private final StatefulRediSearchConnection<String, Object> connection;
@@ -29,6 +32,9 @@ public abstract class LettuceRediSearchClient<E extends RedisSearchableEntity> e
         super(redisSerializer);
         this.connection = connection;
         this.index = getIndex(clazz);
+
+        fieldStrategy.put(RediSearchFieldType.TEXT, SearchableLettuceTextField::new);
+        fieldStrategy.put(RediSearchFieldType.TAG, SearchableLettuceTagField::new);
     }
 
     @Override
@@ -51,7 +57,7 @@ public abstract class LettuceRediSearchClient<E extends RedisSearchableEntity> e
 
         Schema.SchemaBuilder builder = Schema.builder();
         getFields().stream()
-                .map(SearchableField::getLettuceField)
+                .map(SearchableLettuceField::getField)
                 .forEach(builder::field);
         return builder.build();
     }

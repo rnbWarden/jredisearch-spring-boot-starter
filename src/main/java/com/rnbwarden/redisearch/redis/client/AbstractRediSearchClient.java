@@ -21,7 +21,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.reflect.FieldUtils.getAllFieldsList;
 
-public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, S extends RediSearchOptions> implements RediSearchClient<E, S> {
+public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, S extends RediSearchOptions, T extends SearchableField<E>> implements RediSearchClient<E, S> {
 
     protected static final String SERIALIZED_DOCUMENT = "sdoc";
     protected static final String ALL_QUERY = "*";
@@ -32,15 +32,10 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected Long defaultMaxValue;
 
     protected final RedisSerializer<E> redisSerializer;
-    protected final List<SearchableField<E>> fields;
+    protected final List<T> fields;
     protected final Class<E> clazz;
 
-    protected final Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, ? extends SearchableField<E>>> fieldStrategy = new HashMap<>();
-
-    {
-        fieldStrategy.put(RediSearchFieldType.TEXT, SearchableTextField::new);
-        fieldStrategy.put(RediSearchFieldType.TAG, SearchableTagField::new);
-    }
+    protected final Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, T>> fieldStrategy = new HashMap<>();
 
     protected AbstractRediSearchClient(CompressingJacksonSerializer<E> redisSerializer) {
 
@@ -59,9 +54,9 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         checkAndCreateIndex();
     }
 
-    protected List<SearchableField<E>> getSearchableFields() {
+    protected List<T> getSearchableFields() {
 
-        List<SearchableField<E>> searchFields = new ArrayList<>();
+        List<T> searchFields = new ArrayList<>();
 
         List<Field> fields = getAllFieldsList(clazz);
         fields.forEach(field -> stream(field.getAnnotations())
@@ -89,7 +84,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         }
     }
 
-    protected List<SearchableField<E>> getFields() {
+    protected List<T> getFields() {
 
         return fields;
     }

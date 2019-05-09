@@ -2,10 +2,10 @@ package com.rnbwarden.redisearch.redis.client.jedis;
 
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
-import com.rnbwarden.redisearch.redis.client.SearchResults;
 import com.rnbwarden.redisearch.redis.client.RediSearchOptions;
+import com.rnbwarden.redisearch.redis.client.SearchResults;
+import com.rnbwarden.redisearch.redis.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
-import com.rnbwarden.redisearch.redis.entity.SearchableField;
 import io.redisearch.Query;
 import io.redisearch.Schema;
 import io.redisearch.client.Client;
@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
 
-public abstract class JedisRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, JRediSearchOptions> {
+public abstract class JedisRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, JRediSearchOptions, SearchableJedisField<E>> {
 
     private static final Logger logger = LoggerFactory.getLogger(JedisRediSearchClient.class);
     private final Client jRediSearchClient;
@@ -30,6 +30,8 @@ public abstract class JedisRediSearchClient<E extends RedisSearchableEntity> ext
 
         super(redisSerializer);
         this.jRediSearchClient = jRediSearchClient;
+        fieldStrategy.put(RediSearchFieldType.TEXT, SearchableJedisTextField::new);
+        fieldStrategy.put(RediSearchFieldType.TAG, SearchableJedisTagField::new);
     }
 
     @Override
@@ -52,7 +54,7 @@ public abstract class JedisRediSearchClient<E extends RedisSearchableEntity> ext
 
         Schema schema = new Schema();
         getFields().stream()
-                .map(SearchableField::getJettisField)
+                .map(SearchableJedisField::getField)
                 .forEach(schema::addField);
         return schema;
     }
