@@ -19,7 +19,10 @@ public interface RediSearchClient<E extends RedisSearchableEntity, S extends Red
 
     Optional<E> findByKey(String key);
 
-    SearchResults findByFields(Map<String, String> fieldNameValues);
+    default SearchResults findByFields(Map<String, String> fieldNameValues) {
+
+        return findByFields(fieldNameValues, null, null);
+    }
     SearchResults findByFields(Map<String, String> fieldNameValues, Long offset, Long limit);
     SearchResults findByFields(Map<String, String> fieldNameValues, S options);
 
