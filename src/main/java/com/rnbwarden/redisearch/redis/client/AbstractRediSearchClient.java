@@ -1,8 +1,6 @@
 package com.rnbwarden.redisearch.redis.client;
 
-
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
-import com.rnbwarden.redisearch.redis.client.options.RediSearchOptions;
 import com.rnbwarden.redisearch.redis.entity.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,15 +17,15 @@ import java.util.function.Supplier;
 
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.reflect.FieldUtils.getAllFieldsList;
 
-public abstract class AbstractRediSearchClient<E extends /**RediSearchEntity &*/RedisSearchableEntity, S extends RediSearchOptions> implements RediSearchClient<E, S> {
+public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, S extends RediSearchOptions> implements RediSearchClient<E, S> {
 
-    public static final String ID = "id";
     protected static final String SERIALIZED_DOCUMENT = "sdoc";
-
     protected static final String ALL_QUERY = "*";
+
     private final Logger logger = LoggerFactory.getLogger(AbstractRediSearchClient.class);
 
     @Value("${redis.search.defaultResultLimit:0x7fffffff}")
@@ -44,7 +42,7 @@ public abstract class AbstractRediSearchClient<E extends /**RediSearchEntity &*/
         fieldStrategy.put(RediSearchFieldType.TAG, SearchableTagField::new);
     }
 
-    public AbstractRediSearchClient(CompressingJacksonSerializer<E> redisSerializer) {
+    protected AbstractRediSearchClient(CompressingJacksonSerializer<E> redisSerializer) {
 
         this.redisSerializer = redisSerializer;
         this.clazz = redisSerializer.getClazz();
@@ -120,13 +118,13 @@ public abstract class AbstractRediSearchClient<E extends /**RediSearchEntity &*/
 
     public abstract RediSearchOptions getRediSearchOptions();
 
-    protected List<E> deserialize(SearchResult searchResult) {
+    protected List<E> deserialize(SearchResults<String, Object> searchResults) {
 
-        return Optional.of(searchResult)
-                .map(sr -> sr.getFieldsByKey(SERIALIZED_DOCUMENT))
-                .map(byteList -> byteList.stream()
+        return ofNullable(searchResults)
+                .map(SearchResults::getResults)
+                .map(results -> results.stream()
+                        .map(searchResult -> (byte[]) searchResult.getField(SERIALIZED_DOCUMENT))
                         .filter(Objects::nonNull)
-                        .map(bytes -> (byte[]) bytes)
                         .map(redisSerializer::deserialize)
                         .collect(toList()))
                 .orElseGet(Collections::emptyList);
@@ -135,12 +133,12 @@ public abstract class AbstractRediSearchClient<E extends /**RediSearchEntity &*/
     /**
      * Simple method to handle the stopWatch and logging requirements around a given RedisClient operation
      */
-    protected <E> E performTimedOperation(String name, Supplier<E> supplier) {
+    protected <T> T performTimedOperation(String name, Supplier<T> supplier) {
 
         StopWatch stopWatch = new StopWatch(name);
         stopWatch.start();
 
-        E entity = supplier.get();
+        T entity = supplier.get();
 
         stopWatch.stop();
         logger.debug("{}", stopWatch.prettyPrint());

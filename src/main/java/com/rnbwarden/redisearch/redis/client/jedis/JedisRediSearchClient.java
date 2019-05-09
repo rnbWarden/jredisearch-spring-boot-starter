@@ -1,8 +1,9 @@
-package com.rnbwarden.redisearch.redis.client;
+package com.rnbwarden.redisearch.redis.client.jedis;
 
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
-import com.rnbwarden.redisearch.redis.client.options.JRediSearchOptions;
-import com.rnbwarden.redisearch.redis.client.options.RediSearchOptions;
+import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
+import com.rnbwarden.redisearch.redis.client.SearchResults;
+import com.rnbwarden.redisearch.redis.client.RediSearchOptions;
 import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
 import com.rnbwarden.redisearch.redis.entity.SearchableField;
 import io.redisearch.Query;
@@ -19,7 +20,7 @@ import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
 
-public abstract class JedisRediSearchClient<E extends /**RediSearchEntity &*/RedisSearchableEntity> extends AbstractRediSearchClient<E, JRediSearchOptions> {
+public abstract class JedisRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, JRediSearchOptions> {
 
     private static final Logger logger = LoggerFactory.getLogger(JedisRediSearchClient.class);
     private final Client jRediSearchClient;
@@ -80,14 +81,16 @@ public abstract class JedisRediSearchClient<E extends /**RediSearchEntity &*/Red
 
         return performTimedOperation("findByKey",
                 () -> ofNullable(jRediSearchClient.getDocument(key, false))
-                        .map(d -> (byte[]) d.get(SERIALIZED_DOCUMENT))
-                        .map(redisSerializer::deserialize));
+                        .map(d -> d.get(SERIALIZED_DOCUMENT))
+                        .map(b -> (byte[])b)
+                        .map(redisSerializer::deserialize)
+        );
     }
 
     @Override
-    public SearchResult findAll(Integer offset,
-                                Integer limit,
-                                boolean includeContent) {
+    public SearchResults findAll(Integer offset,
+                                 Integer limit,
+                                 boolean includeContent) {
 
         offset = ofNullable(offset).orElse(0);
         limit = ofNullable(limit).orElse(defaultMaxValue.intValue());
@@ -102,9 +105,9 @@ public abstract class JedisRediSearchClient<E extends /**RediSearchEntity &*/Red
     }
 
     @Override
-    public SearchResult findByFields(Map<String, String> fieldNameValues,
-                                     @Nullable Long offset,
-                                     @Nullable Long limit) {
+    public SearchResults findByFields(Map<String, String> fieldNameValues,
+                                      @Nullable Long offset,
+                                      @Nullable Long limit) {
 
         JRediSearchOptions options = (JRediSearchOptions) getRediSearchOptions();
         options.setLimit(limit);
@@ -113,24 +116,24 @@ public abstract class JedisRediSearchClient<E extends /**RediSearchEntity &*/Red
     }
 
     @Override
-    public SearchResult findByFields(Map<String, String> fieldNameValues,
-                                     JRediSearchOptions options) {
+    public SearchResults findByFields(Map<String, String> fieldNameValues,
+                                      JRediSearchOptions options) {
 
         fieldNameValues.forEach((name, value) -> options.addField(name, getField(name).getQuerySyntax(value)));
         return performTimedOperation("searchByFields", () -> search(options.buildQuery()));
     }
 
     @Override
-    public SearchResult find(JRediSearchOptions options) {
+    public SearchResults find(JRediSearchOptions options) {
 
         return performTimedOperation("search", () -> search(options.buildQuery()));
     }
 
-    private SearchResult search(Query query) {
+    private SearchResults search(Query query) {
 
         io.redisearch.SearchResult searchResult = jRediSearchClient.search(query, false);
         logger.debug("found {} totalResults - count {}", searchResult.totalResults, searchResult.docs.stream().filter(Objects::nonNull).count());
 
-        return new JedisSearchResult(searchResult);
+        return new JedisSearchResults(searchResult);
     }
 }

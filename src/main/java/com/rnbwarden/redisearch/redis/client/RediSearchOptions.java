@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.redis.client.options;
+package com.rnbwarden.redisearch.redis.client;
 
 import lombok.Data;
 

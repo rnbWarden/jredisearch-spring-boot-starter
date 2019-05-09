@@ -1,9 +1,9 @@
 package com.rnbwarden.redisearch.autoconfiguration.redis;
 
-import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
-import com.rnbwarden.redisearch.CompressingJacksonSerializer;
-import com.rnbwarden.redisearch.redis.entity.RediSearchEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rnbwarden.redisearch.CompressingJacksonSerializer;
+import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
+import com.rnbwarden.redisearch.redis.entity.RediSearchEntity;
 import io.redisearch.client.Client;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.BeansException;
@@ -33,7 +33,6 @@ import javax.annotation.PostConstruct;
 import java.util.Set;
 
 import static java.lang.String.format;
-import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -56,7 +55,6 @@ public class RediSearchAutoConfiguration implements BeanFactoryAware, Applicatio
     private DefaultListableBeanFactory beanFactory;
     private ApplicationContext applicationContext;
     private JedisSentinelPool jedisSentinelPool;
-
 
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
@@ -90,12 +88,11 @@ public class RediSearchAutoConfiguration implements BeanFactoryAware, Applicatio
 
         try {
             Class<?> clazz = Class.forName(className, false, applicationContext.getClassLoader());
-            Client client = createClient(clazz);
 
             String simpleName = clazz.getSimpleName();
             simpleName = Character.toLowerCase(simpleName.charAt(0)) + simpleName.substring(1);
 
-            beanFactory.registerSingleton(simpleName + "Client", client);
+            beanFactory.registerSingleton(simpleName + "Client", createClient(clazz));
             beanFactory.registerSingleton(simpleName + "RedisSerializer", new CompressingJacksonSerializer<>(clazz, primaryObjectMapper));
 
         } catch (ClassNotFoundException e) {

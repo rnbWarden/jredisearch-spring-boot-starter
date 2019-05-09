@@ -1,10 +1,10 @@
-package com.rnbwarden.redisearch.redis.client;
+package com.rnbwarden.redisearch.redis.client.lettuce;
 
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
 import com.redislabs.lettusearch.search.*;
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
-import com.rnbwarden.redisearch.redis.client.options.LettusearchOptions;
-import com.rnbwarden.redisearch.redis.client.options.RediSearchOptions;
+import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
+import com.rnbwarden.redisearch.redis.client.RediSearchOptions;
 import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
 import com.rnbwarden.redisearch.redis.entity.SearchableField;
 import org.slf4j.Logger;
@@ -17,7 +17,7 @@ import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
 
-public abstract class LettuceRediSearchClient<E extends /**RediSearchEntity &*/RedisSearchableEntity> extends AbstractRediSearchClient<E, LettusearchOptions> {
+public abstract class LettuceRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, LettusearchOptions> {
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private final StatefulRediSearchConnection<String, Object> connection;
@@ -82,7 +82,7 @@ public abstract class LettuceRediSearchClient<E extends /**RediSearchEntity &*/R
 
         return performTimedOperation("findByKey",
                 () -> ofNullable(connection.sync().search(index, key, searchOptions))
-                        .map(SearchResults::getResults)
+                        .map(com.redislabs.lettusearch.search.SearchResults::getResults)
                         .flatMap(results -> results.stream().findAny())
                         .map(com.redislabs.lettusearch.search.SearchResult::getFields)
                         .map(fields -> (byte[]) fields.get(SERIALIZED_DOCUMENT))
@@ -90,26 +90,25 @@ public abstract class LettuceRediSearchClient<E extends /**RediSearchEntity &*/R
     }
 
     @Override
-    public SearchResult findAll(Integer offset,
-                                Integer limit,
-                                boolean includeContent) {
+    public com.rnbwarden.redisearch.redis.client.SearchResults findAll(Integer offset,
+                                                                       Integer limit,
+                                                                       boolean includeContent) {
 
         offset = ofNullable(offset).orElse(0);
         limit = ofNullable(limit).orElse(defaultMaxValue.intValue());
 
         LettusearchOptions options = (LettusearchOptions) getRediSearchOptions();
-//        options.setQuery(new Query(ALL_QUERY));
         options.setLimit(Long.valueOf(limit));
         options.setOffset(Long.valueOf(offset));
         options.setNoContent(!includeContent);
 
-        return performTimedOperation("findAll", () -> search(options.buildSearchOptions()));
+        return performTimedOperation("findAll", () -> search(ALL_QUERY, options.buildSearchOptions()));
     }
 
     @Override
-    public SearchResult findByFields(Map<String, String> fieldNameValues,
-                                     @Nullable Long offset,
-                                     @Nullable Long limit) {
+    public com.rnbwarden.redisearch.redis.client.SearchResults findByFields(Map<String, String> fieldNameValues,
+                                                                            @Nullable Long offset,
+                                                                            @Nullable Long limit) {
 
         LettusearchOptions options = (LettusearchOptions) getRediSearchOptions();
         options.setLimit(limit);
@@ -118,28 +117,33 @@ public abstract class LettuceRediSearchClient<E extends /**RediSearchEntity &*/R
     }
 
     @Override
-    public SearchResult findByFields(Map<String, String> fieldNameValues,
-                                     LettusearchOptions options) {
+    public com.rnbwarden.redisearch.redis.client.SearchResults findByFields(Map<String, String> fieldNameValues,
+                                                                            LettusearchOptions options) {
 
-        fieldNameValues.forEach((name, value) -> options.addField(name, getField(name).getQuerySyntax(value)));
-        return performTimedOperation("searchByFields", () -> search(options.buildSearchOptions()));
+        fieldNameValues.forEach((name, value) -> options.addField(getField(name), value));
+        return search(options);
     }
 
     @Override
-    public SearchResult find(LettusearchOptions options) {
+    public com.rnbwarden.redisearch.redis.client.SearchResults find(LettusearchOptions options) {
 
-        return performTimedOperation("search", () -> search(options.buildSearchOptions()));
+        return performTimedOperation("search", () -> search(options.getQueryString(), options.buildSearchOptions()));
     }
 
-    private SearchResult search(SearchOptions searchOptions) {
+    private LettuceSearchResults search(LettusearchOptions options) {
+
+        return performTimedOperation("search", () -> search(options.buildQueryString(), options.buildSearchOptions()));
+    }
+
+    private LettuceSearchResults search(String queryString, com.redislabs.lettusearch.search.SearchOptions searchOptions) {
 
 //        SearchResults searchResults = connection.sync().search(index, query.toString(), SearchOptions.builder().build());
 //        SearchOptions.builder().returnField(FIELD_NAME).returnField(FIELD_STYLE).build()
 
-        com.redislabs.lettusearch.search.SearchResults searchResults = connection.sync().search(index, searchOptions.toString(), searchOptions);
+        com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, searchOptions);
         logger.debug("found count {}", searchResults.getCount());
 
-        return new LettuceSearchResult(searchResults);
+        return new LettuceSearchResults(searchResults);
     }
 
 }

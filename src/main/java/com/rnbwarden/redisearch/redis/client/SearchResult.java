@@ -1,10 +1,9 @@
 package com.rnbwarden.redisearch.redis.client;
 
-import java.util.List;
+import java.util.Map;
 
-public interface SearchResult {
+public interface SearchResult<K, V> {
 
-    Long getTotalResults();
-    List<Object> getFieldsByKey(String key);
-
+    Map<K, V> getFields();
+    V getField(K key);
 }
