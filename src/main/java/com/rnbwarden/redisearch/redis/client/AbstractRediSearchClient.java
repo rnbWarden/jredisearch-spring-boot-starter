@@ -32,7 +32,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected Long defaultMaxValue;
 
     protected final RedisSerializer<E> redisSerializer;
-    protected final List<T> fields;
+    protected final List<T> fields = new ArrayList<>();
     protected final Class<E> clazz;
 
     protected final Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, T>> fieldStrategy = new HashMap<>();
@@ -41,10 +41,15 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
         this.redisSerializer = redisSerializer;
         this.clazz = redisSerializer.getClazz();
-        this.fields = getSearchableFields();
     }
 
     @PostConstruct
+    private void init() {
+
+        this.fields.addAll(getSearchableFields());
+        checkAndCreateIndex();
+    }
+
     protected abstract void checkAndCreateIndex();
 
     @Override
