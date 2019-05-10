@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
 
-public abstract class JedisRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, JRediSearchOptions, SearchableJedisField<E>> {
+public class JedisRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, JRediSearchOptions, SearchableJedisField<E>> {
 
     private static final Logger logger = LoggerFactory.getLogger(JedisRediSearchClient.class);
     private final Client jRediSearchClient;

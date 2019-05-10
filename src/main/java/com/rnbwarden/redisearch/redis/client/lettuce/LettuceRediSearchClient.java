@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
 
-public abstract class LettuceRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, LettusearchOptions, SearchableLettuceField<E>> {
+public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, LettusearchOptions, SearchableLettuceField<E>> {
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private final StatefulRediSearchConnection<String, Object> connection;
