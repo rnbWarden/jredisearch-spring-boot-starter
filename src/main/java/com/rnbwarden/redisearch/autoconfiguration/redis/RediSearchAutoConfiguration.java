@@ -3,6 +3,7 @@ package com.rnbwarden.redisearch.autoconfiguration.redis;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
+import com.rnbwarden.redisearch.redis.client.jedis.JedisRediSearchClient;
 import com.rnbwarden.redisearch.redis.entity.RediSearchEntity;
 import io.redisearch.client.Client;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -84,16 +85,18 @@ public class RediSearchAutoConfiguration implements BeanFactoryAware, Applicatio
         return scanner.findCandidateComponents(basePackage);
     }
 
+    @SuppressWarnings("unchecked")
     private void createRediSearchBeans(String className) {
 
         try {
             Class<?> clazz = Class.forName(className, false, applicationContext.getClassLoader());
+            Client client = createClient(clazz);
+            CompressingJacksonSerializer<?> compressingJacksonSerializer = new CompressingJacksonSerializer<>(clazz, primaryObjectMapper);
+            JedisRediSearchClient<?> jedisRediSearchClient = new JedisRediSearchClient(client, compressingJacksonSerializer);
 
             String simpleName = clazz.getSimpleName();
             simpleName = Character.toLowerCase(simpleName.charAt(0)) + simpleName.substring(1);
-
-            beanFactory.registerSingleton(simpleName + "Client", createClient(clazz));
-            beanFactory.registerSingleton(simpleName + "RedisSerializer", new CompressingJacksonSerializer<>(clazz, primaryObjectMapper));
+            beanFactory.registerSingleton(simpleName + "RedisSearchClient", jedisRediSearchClient);
 
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
