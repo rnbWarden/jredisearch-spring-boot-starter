@@ -2,6 +2,8 @@ package com.rnbwarden.redisearch.redis.client;
 
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.entity.*;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,6 +12,7 @@ import org.springframework.util.StopWatch;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -63,14 +66,27 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
         List<T> searchFields = new ArrayList<>();
 
-        List<Field> fields = getAllFieldsList(clazz);
+        List<Field> fields = FieldUtils.getFieldsListWithAnnotation(clazz, RediSearchField.class);
         fields.forEach(field -> stream(field.getAnnotations())
                 .filter(annotation -> annotation instanceof RediSearchField)
-                .map(a -> (RediSearchField) a)
+                .map(RediSearchField.class::cast)
                 .forEach(annotation -> {
                     searchFields.add(fieldStrategy.get(annotation.type()).apply(annotation.name(), e -> getFieldValue(field, e)));
                 }));
 
+        List<Method> methodsListWithAnnotation = MethodUtils.getMethodsListWithAnnotation(clazz, RediSearchField.class);
+        methodsListWithAnnotation.forEach(method -> stream(method.getAnnotations())
+                .filter(annotation -> annotation instanceof RediSearchField)
+                .map(RediSearchField.class::cast)
+                .forEach(annotation -> {
+                    searchFields.add(fieldStrategy.get(annotation.type()).apply(annotation.name(), e -> {
+                        try {
+                            return method.invoke(e, null);
+                        } catch (Exception ex) {
+                            throw new RuntimeException(String.format("cannot invoke method:%s on %s", method.getName(), e.getClass()), ex);
+                        }
+                    }));
+                }));
         return searchFields;
     }
 
