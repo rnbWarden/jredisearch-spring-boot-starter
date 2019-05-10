@@ -35,41 +35,22 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected final List<T> fields = new ArrayList<>();
     protected final Class<E> clazz;
 
-    protected final Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, T>> fieldStrategy = new HashMap<>();
-
     protected AbstractRediSearchClient(CompressingJacksonSerializer<E> redisSerializer) {
 
         this.redisSerializer = redisSerializer;
         this.clazz = redisSerializer.getClazz();
         initSearchableFields();
-        checkAndCreateIndex();
     }
 
-    private void initSearchableFields() {
+    protected void initSearchableFields() {
 
         fields.addAll(getSearchableFieldsFromFields());
         fields.addAll(getSearchFieldsFromMethods());
     }
 
+    protected abstract Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, T>> getFieldStrategy();
+
     protected abstract void checkAndCreateIndex();
-
-    private List<T> getSearchFieldsFromMethods() {
-
-        return MethodUtils.getMethodsListWithAnnotation(clazz, RediSearchField.class).stream()
-                .map(method -> stream(method.getAnnotations())
-                        .filter(annotation -> annotation instanceof RediSearchField)
-                        .map(RediSearchField.class::cast)
-                        .map(annotation -> fieldStrategy.get(annotation.type()).apply(annotation.name(), e -> {
-                            try {
-                                return method.invoke(e, null);
-                            } catch (Exception ex) {
-                                throw new RuntimeException(String.format("cannot invoke method:%s on %s", method.getName(), e.getClass()), ex);
-                            }
-                        }))
-                        .collect(toList()))
-                .flatMap(List::stream)
-                .collect(toList());
-    }
 
     private List<T> getSearchableFieldsFromFields() {
 
@@ -77,7 +58,25 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                 .map(field -> stream(field.getAnnotations())
                         .filter(annotation -> annotation instanceof RediSearchField)
                         .map(RediSearchField.class::cast)
-                        .map(annotation -> fieldStrategy.get(annotation.type()).apply(annotation.name(), e -> getFieldValue(field, e)))
+                        .map(annotation -> getFieldStrategy().get(annotation.type()).apply(annotation.name(), e -> getFieldValue(field, e)))
+                        .collect(toList()))
+                .flatMap(List::stream)
+                .collect(toList());
+    }
+
+    private List<T> getSearchFieldsFromMethods() {
+
+        return MethodUtils.getMethodsListWithAnnotation(clazz, RediSearchField.class).stream()
+                .map(method -> stream(method.getAnnotations())
+                        .filter(annotation -> annotation instanceof RediSearchField)
+                        .map(RediSearchField.class::cast)
+                        .map(annotation -> getFieldStrategy().get(annotation.type()).apply(annotation.name(), e -> {
+                            try {
+                                return method.invoke(e, (Object[]) null);
+                            } catch (Exception ex) {
+                                throw new RuntimeException(String.format("cannot invoke method:%s on %s", method.getName(), e.getClass()), ex);
+                            }
+                        }))
                         .collect(toList()))
                 .flatMap(List::stream)
                 .collect(toList());

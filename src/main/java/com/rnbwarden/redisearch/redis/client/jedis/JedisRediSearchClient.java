@@ -14,9 +14,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
 import redis.clients.jedis.exceptions.JedisDataException;
 
+import javax.annotation.PostConstruct;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
 
@@ -30,8 +34,15 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
 
         super(redisSerializer);
         this.jRediSearchClient = jRediSearchClient;
+    }
+
+    @Override
+    protected Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, SearchableJedisField<E>>> getFieldStrategy() {
+
+        Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, SearchableJedisField<E>>> fieldStrategy = new HashMap<>();
         fieldStrategy.put(RediSearchFieldType.TEXT, SearchableJedisTextField::new);
         fieldStrategy.put(RediSearchFieldType.TAG, SearchableJedisTagField::new);
+        return fieldStrategy;
     }
 
     @Override
@@ -41,6 +52,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
+    @PostConstruct
     protected void checkAndCreateIndex() {
 
         try {

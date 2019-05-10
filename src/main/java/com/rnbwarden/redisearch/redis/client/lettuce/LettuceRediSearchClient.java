@@ -5,6 +5,7 @@ import com.redislabs.lettusearch.search.*;
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.redis.client.RediSearchOptions;
+import com.rnbwarden.redisearch.redis.client.jedis.SearchableJedisField;
 import com.rnbwarden.redisearch.redis.client.jedis.SearchableJedisTagField;
 import com.rnbwarden.redisearch.redis.client.jedis.SearchableJedisTextField;
 import com.rnbwarden.redisearch.redis.entity.RediSearchFieldType;
@@ -15,8 +16,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
 import redis.clients.jedis.exceptions.JedisDataException;
 
+import javax.annotation.PostConstruct;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
 
@@ -32,9 +37,16 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         super(redisSerializer);
         this.connection = connection;
         this.index = getIndex(clazz);
+        checkAndCreateIndex();
+    }
 
+    @Override
+    protected Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, SearchableLettuceField<E>>> getFieldStrategy() {
+
+        Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, SearchableLettuceField<E>>> fieldStrategy = new HashMap<>();
         fieldStrategy.put(RediSearchFieldType.TEXT, SearchableLettuceTextField::new);
         fieldStrategy.put(RediSearchFieldType.TAG, SearchableLettuceTagField::new);
+        return fieldStrategy;
     }
 
     @Override
@@ -44,6 +56,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     }
 
     @Override
+    @PostConstruct
     protected void checkAndCreateIndex() {
 
         try {
