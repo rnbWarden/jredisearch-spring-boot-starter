@@ -32,8 +32,8 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected Long defaultMaxValue;
 
     protected final RedisSerializer<E> redisSerializer;
-    protected final List<T> fields = new ArrayList<>();
     protected final Class<E> clazz;
+    private final List<T> fields = new ArrayList<>();
 
     protected AbstractRediSearchClient(CompressingJacksonSerializer<E> redisSerializer) {
 
@@ -42,7 +42,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         initSearchableFields();
     }
 
-    protected void initSearchableFields() {
+    private void initSearchableFields() {
 
         fields.addAll(getSearchableFieldsFromFields());
         fields.addAll(getSearchFieldsFromMethods());
