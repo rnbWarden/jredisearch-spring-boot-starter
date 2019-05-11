@@ -8,7 +8,7 @@ import java.util.Objects;
 
 import static java.util.stream.Collectors.toList;
 
-public class JedisSearchResults implements SearchResults<String, Object> {
+public class JedisSearchResults implements SearchResults {
 
     private final io.redisearch.SearchResult delegate;
 
@@ -29,7 +29,7 @@ public class JedisSearchResults implements SearchResults<String, Object> {
         return delegate.docs.stream()
                 .filter(Objects::nonNull)
                 .map(JedisSearchResult::new)
-                .map(result -> (SearchResult<String, Object>)result)
+                .map(result -> (SearchResult<String, Object>) result)
                 .collect(toList());
     }
 }

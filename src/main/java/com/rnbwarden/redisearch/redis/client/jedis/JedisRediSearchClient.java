@@ -96,7 +96,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         return performTimedOperation("findByKey",
                 () -> ofNullable(jRediSearchClient.getDocument(key, false))
                         .map(d -> d.get(SERIALIZED_DOCUMENT))
-                        .map(b -> (byte[])b)
+                        .map(b -> (byte[]) b)
                         .map(redisSerializer::deserialize)
         );
     }

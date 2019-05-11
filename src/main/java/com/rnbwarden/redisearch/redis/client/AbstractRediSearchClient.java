@@ -82,7 +82,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                 .collect(toList());
     }
 
-    protected static Object getFieldValue(Field f, Object obj) {
+    private static Object getFieldValue(Field f, Object obj) {
 
         try {
             boolean accessible = f.isAccessible();
@@ -133,7 +133,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     public abstract RediSearchOptions getRediSearchOptions();
 
-    protected List<E> deserialize(SearchResults<String, Object> searchResults) {
+    protected List<E> deserialize(SearchResults searchResults) {
 
         return ofNullable(searchResults)
                 .map(SearchResults::getResults)
@@ -148,12 +148,12 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     /**
      * Simple method to handle the stopWatch and logging requirements around a given RedisClient operation
      */
-    protected <T> T performTimedOperation(String name, Supplier<T> supplier) {
+    protected <N> N performTimedOperation(String name, Supplier<N> supplier) {
 
         StopWatch stopWatch = new StopWatch(name);
         stopWatch.start();
 
-        T entity = supplier.get();
+        N entity = supplier.get();
 
         stopWatch.stop();
         logger.debug("{}", stopWatch.prettyPrint());

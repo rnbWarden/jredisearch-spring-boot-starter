@@ -8,7 +8,7 @@ import java.util.Objects;
 
 import static java.util.stream.Collectors.toList;
 
-public class LettuceSearchResults implements SearchResults<String, Object> {
+public class LettuceSearchResults implements SearchResults {
 
     private final com.redislabs.lettusearch.search.SearchResults<String, Object> delegate;
 

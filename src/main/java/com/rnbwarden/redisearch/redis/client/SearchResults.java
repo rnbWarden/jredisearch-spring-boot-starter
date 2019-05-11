@@ -2,10 +2,11 @@ package com.rnbwarden.redisearch.redis.client;
 
 import java.util.List;
 
-public interface SearchResults<K, V> {
+public interface SearchResults {
 
     Long getTotalResults();
-    List<SearchResult<K, V>> getResults();
+
+    List<SearchResult<String, Object>> getResults();
 
     default boolean hasResults() {
 
