@@ -23,7 +23,7 @@ public class RediSearchAutoConfigurationTest {
     public void testAutoConfig() {
 
         assertThat(beanFactory).isNotNull();
-        assertThat(beanFactory.getBean("stubEntityRedisSearchClient")).isNotNull();
+        assertThat(beanFactory.getBean("stubEntityRediSearchClient")).isNotNull();
 //        assertThat(beanFactory.getBean("stubEntityClient")).isNotNull();
 //        assertThat(beanFactory.getBean("stubEntityRedisSerializer")).isNotNull();
     }
