@@ -96,7 +96,7 @@ public class RediSearchAutoConfiguration implements BeanFactoryAware, Applicatio
 
             String simpleName = clazz.getSimpleName();
             simpleName = Character.toLowerCase(simpleName.charAt(0)) + simpleName.substring(1);
-            beanFactory.registerSingleton(simpleName + "RedisSearchClient", jedisRediSearchClient);
+            beanFactory.registerSingleton(simpleName + "RediSearchClient", jedisRediSearchClient);
 
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
