@@ -12,8 +12,7 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @ConditionalOnClass({RedisClient.class, com.redislabs.lettusearch.RediSearchClient.class})
 @Import(RediSearchConfiguration.class)
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
+public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
 
     @Autowired
     private StatefulRediSearchConnection<String, String> statefulRediSearchConnection;

@@ -33,7 +33,7 @@ public abstract class AbstractRediSearchClientAutoConfiguration implements BeanF
     protected ApplicationContext applicationContext;
 
     @PostConstruct
-    void init() {
+    public void init() {
 
         initializeRediSearchBeans();
     }

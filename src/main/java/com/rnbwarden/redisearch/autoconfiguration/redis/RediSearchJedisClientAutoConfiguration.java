@@ -24,8 +24,7 @@ import static java.util.stream.Collectors.toSet;
 
 @Configuration
 @ConditionalOnClass({/*GenericObjectPool.class, JedisConnection.class, */Jedis.class, Client.class})
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
+public class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
 
     @Autowired
     private JedisConnectionFactory jedisConnectionFactory;
