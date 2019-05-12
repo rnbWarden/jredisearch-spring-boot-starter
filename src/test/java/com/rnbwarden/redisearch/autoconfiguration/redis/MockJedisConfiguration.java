@@ -8,7 +8,7 @@ import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import static org.mockito.Mockito.mock;
 
 @Configuration
-public class MockConfiguration {
+public class MockJedisConfiguration {
 
     @Bean
     public ObjectMapper objectMapper() {
@@ -21,5 +21,4 @@ public class MockConfiguration {
 
         return mock(JedisConnectionFactory.class);
     }
-
 }

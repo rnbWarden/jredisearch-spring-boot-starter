@@ -1,5 +1,7 @@
 package com.rnbwarden.redisearch.autoconfiguration.redis;
 
+import com.rnbwarden.redisearch.redis.client.jedis.JedisRediSearchClient;
+import com.rnbwarden.redisearch.redis.client.lettuce.LettuceRediSearchClient;
 import org.junit.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
@@ -14,19 +16,25 @@ public class RediSearchAutoConfigurationTest {
     public void testAutoConfig() {
 
         new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(RediSearchAutoConfiguration.class, MockConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(RediSearchAutoConfiguration.class, MockJedisConfiguration.class))
                 .withClassLoader(new FilteredClassLoader(io.lettuce.core.RedisClient.class))
                 .withPropertyValues("redis.search.base-package=com.rnbwarden.redisearch")
-                .run((context) -> assertThat(context).hasBean("stubEntityRediSearchClient"));
+                .run((context) -> {
+                    assertThat(context).doesNotHaveBean(LettuceRediSearchClient.class);
+                    assertThat(context).hasBean("stubEntityRediSearchClient");
+                });
     }
 
     @Test
     public void testAutoConfigLettuce() {
 
         new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(RediSearchAutoConfiguration.class, MockConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(RediSearchAutoConfiguration.class, MockLettuceConfiguration.class))
                 .withClassLoader(new FilteredClassLoader(Jedis.class))
                 .withPropertyValues("redis.search.base-package=com.rnbwarden.redisearch")
-                .run((context) -> assertThat(context).hasBean("stubEntityRediSearchClient"));
+                .run((context) -> {
+                    assertThat(context).doesNotHaveBean(JedisRediSearchClient.class);
+                    assertThat(context).hasBean("stubEntityRediSearchClient");
+                });
     }
 }

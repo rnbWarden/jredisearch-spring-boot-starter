@@ -1,6 +1,5 @@
 package com.rnbwarden.redisearch.autoconfiguration.redis;
 
-import com.redislabs.lettusearch.RediSearchClient;
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
 import com.redislabs.springredisearch.RediSearchConfiguration;
 import com.rnbwarden.redisearch.redis.client.lettuce.LettuceRediSearchClient;
@@ -17,16 +16,7 @@ import org.springframework.context.annotation.Import;
 class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
 
     @Autowired
-    private RediSearchClient rediSearchClient;
-
     StatefulRediSearchConnection<String, String> statefulRediSearchConnection;
-
-    @Override
-    void init() {
-
-        this.statefulRediSearchConnection = rediSearchClient.connect();
-        super.init();
-    }
 
     @Override
     @SuppressWarnings("unchecked")
