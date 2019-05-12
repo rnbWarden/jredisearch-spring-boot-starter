@@ -9,7 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-@Configuration
+@Configuration("RediSearchLettuceClientAutoConfiguration")
 @ConditionalOnClass({RedisClient.class, com.redislabs.lettusearch.RediSearchClient.class})
 @Import(RediSearchConfiguration.class)
 public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
