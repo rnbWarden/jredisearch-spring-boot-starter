@@ -1,30 +1,32 @@
 package com.rnbwarden.redisearch.autoconfiguration.redis;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.FilteredClassLoader;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import redis.clients.jedis.Jedis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(classes = {
-        RediSearchAutoConfiguration.class,
-        MockConfiguration.class
-})
 public class RediSearchAutoConfigurationTest {
-
-    @Autowired
-    private BeanFactory beanFactory;
 
     @Test
     public void testAutoConfig() {
 
-        assertThat(beanFactory).isNotNull();
-        assertThat(beanFactory.getBean("stubEntityRediSearchClient")).isNotNull();
-//        assertThat(beanFactory.getBean("stubEntityClient")).isNotNull();
-//        assertThat(beanFactory.getBean("stubEntityRedisSerializer")).isNotNull();
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(RediSearchAutoConfiguration.class, MockConfiguration.class))
+                .withClassLoader(new FilteredClassLoader(io.lettuce.core.RedisClient.class))
+                .withPropertyValues("redis.search.base-package=com.rnbwarden.redisearch")
+                .run((context) -> assertThat(context).hasBean("stubEntityRediSearchClient"));
+    }
+
+    @Test
+    public void testAutoConfigLettuce() {
+
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(RediSearchAutoConfiguration.class, MockConfiguration.class))
+                .withClassLoader(new FilteredClassLoader(Jedis.class))
+                .withPropertyValues("redis.search.base-package=com.rnbwarden.redisearch")
+                .run((context) -> assertThat(context).hasBean("stubEntityRediSearchClient"));
     }
 }
