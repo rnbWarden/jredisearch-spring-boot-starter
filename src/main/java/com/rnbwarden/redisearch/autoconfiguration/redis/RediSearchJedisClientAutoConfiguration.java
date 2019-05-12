@@ -5,6 +5,7 @@ import com.rnbwarden.redisearch.redis.client.jedis.JedisRediSearchClient;
 import io.redisearch.client.Client;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.NamedNode;
@@ -26,13 +27,9 @@ import static java.util.stream.Collectors.toSet;
 @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
 
-    private final JedisConnectionFactory jedisConnectionFactory;
+    @Autowired
+    private JedisConnectionFactory jedisConnectionFactory;
     private JedisSentinelPool jedisSentinelPool;
-
-    public RediSearchJedisClientAutoConfiguration(JedisConnectionFactory jedisConnectionFactory) {
-
-        this.jedisConnectionFactory = jedisConnectionFactory;
-    }
 
     @Override
     @SuppressWarnings("unchecked")
