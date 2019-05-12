@@ -16,7 +16,12 @@ import org.springframework.context.annotation.Import;
 class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
 
     @Autowired
-    StatefulRediSearchConnection<String, String> statefulRediSearchConnection;
+    private final StatefulRediSearchConnection<String, String> statefulRediSearchConnection;
+
+    public RediSearchLettuceClientAutoConfiguration(StatefulRediSearchConnection<String, String> statefulRediSearchConnection) {
+
+        this.statefulRediSearchConnection = statefulRediSearchConnection;
+    }
 
     @Override
     @SuppressWarnings("unchecked")

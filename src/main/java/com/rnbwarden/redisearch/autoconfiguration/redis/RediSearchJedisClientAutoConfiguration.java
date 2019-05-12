@@ -29,7 +29,7 @@ class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchClientAut
     private final JedisConnectionFactory jedisConnectionFactory;
     private JedisSentinelPool jedisSentinelPool;
 
-    RediSearchJedisClientAutoConfiguration(JedisConnectionFactory jedisConnectionFactory) {
+    public RediSearchJedisClientAutoConfiguration(JedisConnectionFactory jedisConnectionFactory) {
 
         this.jedisConnectionFactory = jedisConnectionFactory;
     }
