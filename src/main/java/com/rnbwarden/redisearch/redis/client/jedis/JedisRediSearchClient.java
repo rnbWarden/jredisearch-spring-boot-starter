@@ -31,9 +31,10 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     private final Client jRediSearchClient;
 
     public JedisRediSearchClient(Client jRediSearchClient,
-                                 CompressingJacksonSerializer<E> redisSerializer) {
+                                 CompressingJacksonSerializer<E> redisSerializer,
+                                 Long defaultMaxResults) {
 
-        super(redisSerializer);
+        super(redisSerializer, defaultMaxResults);
         this.jRediSearchClient = jRediSearchClient;
     }
 

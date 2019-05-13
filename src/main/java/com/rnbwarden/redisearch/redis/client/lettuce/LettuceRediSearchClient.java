@@ -30,9 +30,10 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     private final String index;
 
     public LettuceRediSearchClient(StatefulRediSearchConnection<String, Object> connection,
-                                   CompressingJacksonSerializer<E> redisSerializer) {
+                                   CompressingJacksonSerializer<E> redisSerializer,
+                                   Long defaultMaxResults) {
 
-        super(redisSerializer);
+        super(redisSerializer, defaultMaxResults);
         this.connection = connection;
         this.index = getIndex(clazz);
         checkAndCreateIndex();

@@ -34,7 +34,7 @@ public class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchCl
     @SuppressWarnings("unchecked")
     void createRediSearchBeans(Class<?> clazz) {
 
-        beanFactory.registerSingleton(getRedisearchBeanName(clazz), new JedisRediSearchClient(createClient(clazz), createRedisSerializer(clazz)));
+        beanFactory.registerSingleton(getRedisearchBeanName(clazz), new JedisRediSearchClient(createClient(clazz), createRedisSerializer(clazz), defaultMaxResults));
     }
 
     private Client createClient(Class<?> clazz) {

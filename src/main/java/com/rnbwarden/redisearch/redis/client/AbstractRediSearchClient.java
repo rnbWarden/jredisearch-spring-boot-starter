@@ -6,7 +6,6 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.StopWatch;
@@ -28,17 +27,17 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected static final String ALL_QUERY = "*";
 
     private final Logger logger = LoggerFactory.getLogger(AbstractRediSearchClient.class);
-
-    @Value("${redis.search.defaultResultLimit:0x7fffffff}")
-    protected Long defaultMaxValue;
+    private final Long defaultMaxResults;
 
     protected final RedisSerializer<E> redisSerializer;
     protected final Class<E> clazz;
     private final List<T> fields = new ArrayList<>();
 
-    protected AbstractRediSearchClient(CompressingJacksonSerializer<E> redisSerializer) {
+    protected AbstractRediSearchClient(CompressingJacksonSerializer<E> redisSerializer,
+                                       Long defaultMaxResults) {
 
         this.redisSerializer = redisSerializer;
+        this.defaultMaxResults = defaultMaxResults;
         this.clazz = redisSerializer.getClazz();
         initSearchableFields();
     }
@@ -177,7 +176,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                                  boolean includeContent) {
 
         offset = ofNullable(offset).orElse(0);
-        limit = ofNullable(limit).orElse(defaultMaxValue.intValue());
+        limit = ofNullable(limit).orElse(defaultMaxResults.intValue());
 
         RediSearchOptions options = new RediSearchOptions();
         options.setLimit(Long.valueOf(limit));

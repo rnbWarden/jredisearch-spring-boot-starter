@@ -21,6 +21,6 @@ public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearch
     @SuppressWarnings("unchecked")
     void createRediSearchBeans(Class<?> clazz) {
 
-        beanFactory.registerSingleton(getRedisearchBeanName(clazz), new LettuceRediSearchClient(statefulRediSearchConnection, createRedisSerializer(clazz)));
+        beanFactory.registerSingleton(getRedisearchBeanName(clazz), new LettuceRediSearchClient(statefulRediSearchConnection, createRedisSerializer(clazz), defaultMaxResults));
     }
 }
