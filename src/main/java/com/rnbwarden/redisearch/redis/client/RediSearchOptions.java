@@ -1,11 +1,16 @@
 package com.rnbwarden.redisearch.redis.client;
 
+import com.rnbwarden.redisearch.redis.entity.SearchableField;
 import lombok.Data;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Data
-public abstract class RediSearchOptions {
+public class RediSearchOptions {
 
     static long defaultMaxValue = Long.MAX_VALUE;
+    private Map<SearchableField, String> fieldNameValues = new HashMap<>();
 
     protected boolean noContent;
     protected boolean verbatim;
@@ -17,4 +22,10 @@ public abstract class RediSearchOptions {
     protected String sortBy;
     protected Long offset;
     protected Long limit;
+
+    public void addField(SearchableField field, String value) {
+
+        fieldNameValues.put(field, value);
+    }
+
 }

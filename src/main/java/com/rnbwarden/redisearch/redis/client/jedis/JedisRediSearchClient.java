@@ -9,9 +9,9 @@ import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
 import io.redisearch.Query;
 import io.redisearch.Schema;
 import io.redisearch.client.Client;
+import io.redisearch.querybuilder.QueryNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.lang.Nullable;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 import javax.annotation.PostConstruct;
@@ -22,9 +22,10 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import static io.redisearch.querybuilder.QueryBuilder.intersect;
 import static java.util.Optional.ofNullable;
 
-public class JedisRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, JRediSearchOptions, SearchableJedisField<E>> {
+public class JedisRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, SearchableJedisField<E>> {
 
     private static final Logger logger = LoggerFactory.getLogger(JedisRediSearchClient.class);
     private final Client jRediSearchClient;
@@ -43,12 +44,6 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         fieldStrategy.put(RediSearchFieldType.TEXT, SearchableJedisTextField::new);
         fieldStrategy.put(RediSearchFieldType.TAG, SearchableJedisTagField::new);
         return fieldStrategy;
-    }
-
-    @Override
-    public RediSearchOptions getRediSearchOptions() {
-
-        return new JRediSearchOptions();
     }
 
     @Override
@@ -102,45 +97,31 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
-    public SearchResults findAll(Integer offset,
-                                 Integer limit,
-                                 boolean includeContent) {
+    public SearchResults find(RediSearchOptions options) {
 
-        offset = ofNullable(offset).orElse(0);
-        limit = ofNullable(limit).orElse(defaultMaxValue.intValue());
+        return performTimedOperation("search", () -> search(buildQuery(options)));
+    }
 
-        JRediSearchOptions options = (JRediSearchOptions) getRediSearchOptions();
-        options.setQuery(new Query(ALL_QUERY));
-        options.setLimit(Long.valueOf(limit));
-        options.setOffset(Long.valueOf(offset));
-        options.setNoContent(!includeContent);
+    private Query buildQuery(RediSearchOptions rediSearchOptions) {
 
-        return performTimedOperation("findAll", () -> search(options.buildQuery()));
+        QueryNode node = intersect();
+        rediSearchOptions.getFieldNameValues().forEach((field, value) -> node.add(field.getName(), field.getQuerySyntax(value)));
+        Query query = new Query(node.toString());
+
+        if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {
+            query.limit(rediSearchOptions.getOffset().intValue(), rediSearchOptions.getLimit().intValue());
+        }
+        return query;
     }
 
     @Override
-    public SearchResults findByFields(Map<String, String> fieldNameValues,
-                                      @Nullable Long offset,
-                                      @Nullable Long limit) {
+    protected SearchResults search(String queryString, RediSearchOptions rediSearchOptions) {
 
-        JRediSearchOptions options = (JRediSearchOptions) getRediSearchOptions();
-        options.setLimit(limit);
-        options.setOffset(offset);
-        return findByFields(fieldNameValues, options);
-    }
-
-    @Override
-    public SearchResults findByFields(Map<String, String> fieldNameValues,
-                                      JRediSearchOptions options) {
-
-        fieldNameValues.forEach((name, value) -> options.addField(name, getField(name).getQuerySyntax(value)));
-        return performTimedOperation("searchByFields", () -> search(options.buildQuery()));
-    }
-
-    @Override
-    public SearchResults find(JRediSearchOptions options) {
-
-        return performTimedOperation("search", () -> search(options.buildQuery()));
+        Query query = new Query(queryString);
+        if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {
+            query.limit(rediSearchOptions.getOffset().intValue(), rediSearchOptions.getLimit().intValue());
+        }
+        return search(query);
     }
 
     private SearchResults search(Query query) {

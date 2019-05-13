@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.lang.Nullable;
 import org.springframework.util.StopWatch;
 
 import java.lang.reflect.Field;
@@ -21,7 +22,7 @@ import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
-public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, S extends RediSearchOptions, T extends SearchableField<E>> implements RediSearchClient<E, S> {
+public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, T extends SearchableField<E>> implements RediSearchClient<E> {
 
     protected static final String SERIALIZED_DOCUMENT = "sdoc";
     protected static final String ALL_QUERY = "*";
@@ -131,8 +132,6 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         return findAll(0, 0, false).getTotalResults();
     }
 
-    public abstract RediSearchOptions getRediSearchOptions();
-
     @Override
     public List<E> deserialize(SearchResults searchResults) {
 
@@ -172,4 +171,40 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                 .get();
     }
 
+    @Override
+    public SearchResults findAll(Integer offset,
+                                 Integer limit,
+                                 boolean includeContent) {
+
+        offset = ofNullable(offset).orElse(0);
+        limit = ofNullable(limit).orElse(defaultMaxValue.intValue());
+
+        RediSearchOptions options = new RediSearchOptions();
+        options.setLimit(Long.valueOf(limit));
+        options.setOffset(Long.valueOf(offset));
+        options.setNoContent(!includeContent);
+
+        return performTimedOperation("findAll", () -> search(ALL_QUERY, options));
+    }
+
+    @Override
+    public SearchResults findByFields(Map<String, String> fieldNameValues,
+                                      @Nullable Long offset,
+                                      @Nullable Long limit) {
+
+        RediSearchOptions options = new RediSearchOptions();
+        options.setLimit(limit);
+        options.setOffset(offset);
+        return findByFields(fieldNameValues, options);
+    }
+
+    @Override
+    public SearchResults findByFields(Map<String, String> fieldNameValues,
+                                      RediSearchOptions options) {
+
+        fieldNameValues.forEach((name, value) -> options.addField(getField(name), value));
+        return find(options);
+    }
+
+    protected abstract SearchResults search(String queryString, RediSearchOptions searchOptions);
 }

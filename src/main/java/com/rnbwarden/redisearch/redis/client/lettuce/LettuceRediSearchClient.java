@@ -5,15 +5,12 @@ import com.redislabs.lettusearch.search.*;
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.redis.client.RediSearchOptions;
-import com.rnbwarden.redisearch.redis.client.jedis.SearchableJedisField;
-import com.rnbwarden.redisearch.redis.client.jedis.SearchableJedisTagField;
-import com.rnbwarden.redisearch.redis.client.jedis.SearchableJedisTextField;
+import com.rnbwarden.redisearch.redis.client.SearchResults;
 import com.rnbwarden.redisearch.redis.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
 import com.rnbwarden.redisearch.redis.entity.SearchableField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.lang.Nullable;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 import javax.annotation.PostConstruct;
@@ -24,8 +21,9 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
 
-public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, LettusearchOptions, SearchableLettuceField<E>> {
+public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, SearchableLettuceField<E>> {
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private final StatefulRediSearchConnection<String, Object> connection;
@@ -47,12 +45,6 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         fieldStrategy.put(RediSearchFieldType.TEXT, SearchableLettuceTextField::new);
         fieldStrategy.put(RediSearchFieldType.TAG, SearchableLettuceTagField::new);
         return fieldStrategy;
-    }
-
-    @Override
-    public RediSearchOptions getRediSearchOptions() {
-
-        return new LettusearchOptions();
     }
 
     @Override
@@ -109,60 +101,39 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     }
 
     @Override
-    public com.rnbwarden.redisearch.redis.client.SearchResults findAll(Integer offset,
-                                                                       Integer limit,
-                                                                       boolean includeContent) {
+    public SearchResults find(RediSearchOptions options) {
 
-        offset = ofNullable(offset).orElse(0);
-        limit = ofNullable(limit).orElse(defaultMaxValue.intValue());
-
-        LettusearchOptions options = (LettusearchOptions) getRediSearchOptions();
-        options.setLimit(Long.valueOf(limit));
-        options.setOffset(Long.valueOf(offset));
-        options.setNoContent(!includeContent);
-
-        return performTimedOperation("findAll", () -> search(ALL_QUERY, options.buildSearchOptions()));
+        return performTimedOperation("search", () -> search(buildQueryString(options), options));
     }
 
     @Override
-    public com.rnbwarden.redisearch.redis.client.SearchResults findByFields(Map<String, String> fieldNameValues,
-                                                                            @Nullable Long offset,
-                                                                            @Nullable Long limit) {
-
-        LettusearchOptions options = (LettusearchOptions) getRediSearchOptions();
-        options.setLimit(limit);
-        options.setOffset(offset);
-        return findByFields(fieldNameValues, options);
-    }
-
-    @Override
-    public com.rnbwarden.redisearch.redis.client.SearchResults findByFields(Map<String, String> fieldNameValues,
-                                                                            LettusearchOptions options) {
-
-        fieldNameValues.forEach((name, value) -> options.addField(getField(name), value));
-        return search(options);
-    }
-
-    @Override
-    public com.rnbwarden.redisearch.redis.client.SearchResults find(LettusearchOptions options) {
-
-        return performTimedOperation("search", () -> search(options.getQueryString(), options.buildSearchOptions()));
-    }
-
-    private LettuceSearchResults search(LettusearchOptions options) {
-
-        return performTimedOperation("search", () -> search(options.buildQueryString(), options.buildSearchOptions()));
-    }
-
-    private LettuceSearchResults search(String queryString, com.redislabs.lettusearch.search.SearchOptions searchOptions) {
+    protected SearchResults search(String queryString, RediSearchOptions options) {
 
 //        SearchResults searchResults = connection.sync().search(index, query.toString(), SearchOptions.builder().build());
 //        SearchOptions.builder().returnField(FIELD_NAME).returnField(FIELD_STYLE).build()
 
-        com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, searchOptions);
+        com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, buildSearchOptions(options));
         logger.debug("found count {}", searchResults.getCount());
 
         return new LettuceSearchResults(searchResults);
     }
 
+    private String buildQueryString(RediSearchOptions rediSearchOptions) {
+
+        return rediSearchOptions.getFieldNameValues().entrySet().stream()
+                .map(entry -> {
+                    SearchableField field = entry.getKey();
+                    return String.format("@%s:%s", field.getName(), field.getQuerySyntax(entry.getValue()));
+                })
+                .collect(joining(" ")); //space imply intersection - AND
+    }
+
+    private SearchOptions buildSearchOptions(RediSearchOptions rediSearchOptions) {
+
+        SearchOptions.SearchOptionsBuilder builder = SearchOptions.builder();
+        if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {
+            builder.limit(Limit.builder().num(rediSearchOptions.getLimit()).offset(rediSearchOptions.getOffset()).build());
+        }
+        return builder.build();
+    }
 }

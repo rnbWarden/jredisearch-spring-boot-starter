@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public interface RediSearchClient<E extends RedisSearchableEntity, S extends RediSearchOptions> {
+public interface RediSearchClient<E extends RedisSearchableEntity> {
 
     void recreateIndex();
     void dropIndex();
@@ -25,9 +25,10 @@ public interface RediSearchClient<E extends RedisSearchableEntity, S extends Red
         return findByFields(fieldNameValues, null, null);
     }
     SearchResults findByFields(Map<String, String> fieldNameValues, Long offset, Long limit);
-    SearchResults findByFields(Map<String, String> fieldNameValues, S options);
 
-    SearchResults find(S options);
+    SearchResults findByFields(Map<String, String> fieldNameValues, RediSearchOptions options);
+
+    SearchResults find(RediSearchOptions options);
 
     List<E> deserialize(SearchResults searchResults);
 }
