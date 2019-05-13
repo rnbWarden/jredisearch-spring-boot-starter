@@ -133,6 +133,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     public abstract RediSearchOptions getRediSearchOptions();
 
+    @Override
     public List<E> deserialize(SearchResults searchResults) {
 
         return ofNullable(searchResults)

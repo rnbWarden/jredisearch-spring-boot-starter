@@ -3,6 +3,7 @@ package com.rnbwarden.redisearch.redis.client;
 import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
 import org.springframework.lang.NonNull;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,4 +28,6 @@ public interface RediSearchClient<E extends RedisSearchableEntity, S extends Red
     SearchResults findByFields(Map<String, String> fieldNameValues, S options);
 
     SearchResults find(S options);
+
+    List<E> deserialize(SearchResults searchResults);
 }
