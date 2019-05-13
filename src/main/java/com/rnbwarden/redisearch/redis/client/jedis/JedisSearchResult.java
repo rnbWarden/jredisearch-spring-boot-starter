@@ -8,10 +8,12 @@ import java.util.Map;
 
 public class JedisSearchResult implements SearchResult<String, Object> {
 
+    private final Document delegate;
     private final Map<String, Object> properties = new HashMap<>();
 
     JedisSearchResult(Document delegate) {
 
+        this.delegate = delegate;
         delegate.getProperties().forEach(entry -> properties.put(entry.getKey(), entry.getValue()));
     }
 
@@ -25,5 +27,11 @@ public class JedisSearchResult implements SearchResult<String, Object> {
     public Object getField(String key) {
 
         return properties.get(key);
+    }
+
+    @Override
+    public String getId() {
+
+        return delegate.getId();
     }
 }

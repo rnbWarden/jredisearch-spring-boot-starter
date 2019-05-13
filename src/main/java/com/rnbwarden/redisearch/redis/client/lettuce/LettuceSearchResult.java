@@ -24,4 +24,10 @@ public class LettuceSearchResult<K, V> implements SearchResult<K, V> {
 
         return delegate.getFields().get(key);
     }
+
+    @Override
+    public K getId() {
+
+        return delegate.getDocumentId();
+    }
 }
