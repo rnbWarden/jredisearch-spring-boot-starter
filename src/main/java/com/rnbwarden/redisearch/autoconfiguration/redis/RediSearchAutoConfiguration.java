@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Import;
  * {@link EnableAutoConfiguration Auto-configuration} for RediSearch.
  */
 @Configuration("RediSearchAutoConfiguration")
-@EnableConfigurationProperties(RedisProperties.class)
 @Import({RediSearchJedisClientAutoConfiguration.class,
         RediSearchLettuceClientAutoConfiguration.class})
 public class RediSearchAutoConfiguration {

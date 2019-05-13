@@ -23,7 +23,7 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
 
 @Configuration("RediSearchJedisClientAutoConfiguration")
-@ConditionalOnClass({/*GenericObjectPool.class, JedisConnection.class, */Jedis.class, Client.class})
+@ConditionalOnClass({GenericObjectPool.class, JedisConnection.class, Jedis.class, Client.class})
 public class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
 
     @Autowired
