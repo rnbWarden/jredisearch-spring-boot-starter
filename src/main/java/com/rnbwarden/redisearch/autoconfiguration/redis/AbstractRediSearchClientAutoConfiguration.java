@@ -21,7 +21,7 @@ import javax.annotation.PostConstruct;
 import java.util.Set;
 
 @EnableConfigurationProperties(RedisProperties.class)
-public abstract class AbstractRediSearchClientAutoConfiguration implements BeanFactoryAware, ApplicationContextAware {
+public abstract class AbstractRediSearchClientAutoConfiguration implements RediSearchClientAutoConfiguration {
 
     @Value("${redis.search.base-package}")
     protected String basePackage;
@@ -32,6 +32,7 @@ public abstract class AbstractRediSearchClientAutoConfiguration implements BeanF
     protected DefaultListableBeanFactory beanFactory;
     protected ApplicationContext applicationContext;
 
+    @Override
     @PostConstruct
     public void init() {
 
