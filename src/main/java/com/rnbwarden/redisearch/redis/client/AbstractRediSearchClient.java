@@ -133,7 +133,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     public abstract RediSearchOptions getRediSearchOptions();
 
-    protected List<E> deserialize(SearchResults searchResults) {
+    public List<E> deserialize(SearchResults searchResults) {
 
         return ofNullable(searchResults)
                 .map(SearchResults::getResults)
