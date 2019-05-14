@@ -53,7 +53,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     protected void checkAndCreateIndex() {
 
         try {
-            connection.sync().info();
+            this.connection.sync().indexInfo(index);
         } catch (JedisDataException jde) {
             connection.sync().create(index, createSchema());
         }
