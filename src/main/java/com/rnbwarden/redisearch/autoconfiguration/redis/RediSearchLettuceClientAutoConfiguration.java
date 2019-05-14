@@ -17,7 +17,6 @@ public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearch
 
     @Autowired
     private com.redislabs.lettusearch.RediSearchClient client;
-//    private StatefulRediSearchConnection<String, String> statefulRediSearchConnection;
 
     @Override
     @SuppressWarnings("unchecked")
