@@ -5,9 +5,7 @@ import com.redislabs.springredisearch.RediSearchConfiguration;
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.client.lettuce.LettuceRediSearchClient;
 import io.lettuce.core.RedisClient;
-import io.lettuce.core.codec.ByteArrayCodec;
 import io.lettuce.core.codec.RedisCodec;
-import io.lettuce.core.codec.StringCodec;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
@@ -28,11 +26,11 @@ public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearch
     void createRediSearchBeans(Class<?> clazz) {
 
         CompressingJacksonSerializer<?> compressingJacksonSerializer = super.createRedisSerializer(clazz);
-//        RedisCodec<Object, Object> redisCodec = CompressionCodec.valueCompressor(StringCodec.UTF8, CompressionCodec.CompressionType.GZIP);
+
         RedisCodec redisCodec = compressingRedisCodec(compressingJacksonSerializer);
         StatefulRediSearchConnection<Object, Object> statefulRediSearchConnection = client.connect(redisCodec);
 
-        beanFactory.registerSingleton(getRedisearchBeanName(clazz), new LettuceRediSearchClient(statefulRediSearchConnection, createRedisSerializer(clazz), defaultMaxResults));
+        beanFactory.registerSingleton(getRedisearchBeanName(clazz), new LettuceRediSearchClient(statefulRediSearchConnection, compressingJacksonSerializer, defaultMaxResults));
     }
 
     private RedisCodec<String, Object> compressingRedisCodec(CompressingJacksonSerializer<?> compressingJacksonSerializer) {

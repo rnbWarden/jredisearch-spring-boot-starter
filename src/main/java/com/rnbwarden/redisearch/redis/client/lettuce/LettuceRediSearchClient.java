@@ -9,9 +9,9 @@ import com.rnbwarden.redisearch.redis.client.SearchResults;
 import com.rnbwarden.redisearch.redis.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
 import com.rnbwarden.redisearch.redis.entity.SearchableField;
+import io.lettuce.core.RedisCommandExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.exceptions.JedisDataException;
 
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
@@ -54,8 +54,10 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         try {
             this.connection.sync().indexInfo(index);
-        } catch (JedisDataException jde) {
-            connection.sync().create(index, createSchema());
+        } catch (RedisCommandExecutionException ex) {
+            if (ex.getCause().getMessage().equals("Unknown Index name")) {
+                connection.sync().create(index, createSchema());
+            }
         }
     }
 
