@@ -13,13 +13,31 @@ It includes functionality for creating RediSearchClients for annotated RediSearc
 == Configuration
 Leverages the existing Spring Data Redis properties.
 
-*Currently Requires Jedis (and not Lettuce which is the the Spring Boot Default redis client)*
+*Supports both Jedis & Lettuce*
 
 Within `build.gradle`
 You will need to include the dependency.
 ----
 compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter'
 ----
+Also, you need to pick the client-specific RediSearch dependencies.
+
+For JEDIS
+----
+    compile 'org.springframework.data:spring-data-redis:2.2.0.M2'
+    compile 'redis.clients:jedis:3.0.1'
+    compile 'com.redislabs:jredisearch:0.25.0'
+    compile 'com.bsb.common:jredisearch-spring-boot-starter:1.0.26'
+----
+
+for LETTUCE
+----
+    compile 'org.springframework.data:spring-data-redis:2.2.0.M2'
+    compile 'com.redislabs:lettusearch:1.1.10'
+    compile 'com.redislabs:spring-redisearch:1.1.2'
+    compile 'com.bsb.common:jredisearch-spring-boot-starter:1.0.26'
+----
+
 
 Annotate your beans as follows:
 [source,java]
@@ -42,17 +60,23 @@ example
 private CartType type;
 ----
 
-At runtime a JRedisearch Client will be created for your entity and the corresponding index created at application startup.
-Additionally, two beans will be created and injected into the Spring BeanFactory:
+At runtime a RedisearchClient (of RedisearchClient<{your-entity-type}>) will be created for your entity and the corresponding index created at application startup.
+This RediSearchClient bean will be injected into the Spring BeanFactory as follows:
 
-  "{simpleName}" + Client
-  "{simpleName}" + RedisSerializer
+  "{simpleName}" + RediSearchClient
 
 ...where simpleName is the lower camel case version of the Entity class simple name.
+
+Finally to enable the AutoConfiguration your application must bootstrap the config early enough in the application bootstrapping to satisfy all dependencies. Spring *will not* see this config as required because it mutates the application context without Spring being aware.
+The easiest and most straightforward way of doing this is to include the following annotation on the classes with the RediSearchClient dependencies.
+
+[source,java]
+----
+@DependsOn("RediSearchAutoConfiguration")
+----
 
 
 == References
 
 * https://oss.redislabs.com/redisearch/Quick_Start.html [Using RediSearch]
 * https://github.com/RediSearch/JRediSearch [JRediSearch client]
-
