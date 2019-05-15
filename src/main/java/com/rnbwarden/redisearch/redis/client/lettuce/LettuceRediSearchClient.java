@@ -135,6 +135,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {
             builder.limit(Limit.builder().num(rediSearchOptions.getLimit()).offset(rediSearchOptions.getOffset()).build());
         }
+        builder.noContent(rediSearchOptions.isNoContent());
         return builder.build();
     }
 }

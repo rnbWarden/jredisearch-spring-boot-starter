@@ -121,6 +121,9 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {
             query.limit(rediSearchOptions.getOffset().intValue(), rediSearchOptions.getLimit().intValue());
         }
+        if (rediSearchOptions.isNoContent()) {
+            query.setNoContent();
+        }
         return search(query);
     }
 
