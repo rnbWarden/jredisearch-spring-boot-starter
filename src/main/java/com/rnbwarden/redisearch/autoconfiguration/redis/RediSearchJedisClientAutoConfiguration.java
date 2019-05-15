@@ -28,6 +28,9 @@ public class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchCl
 
     @Autowired
     private JedisConnectionFactory jedisConnectionFactory;
+    @Autowired
+    private JedisSearchConnectionFactory jedisSearchConnectionFactory;
+
     private JedisSentinelPool jedisSentinelPool;
 
     @Override
@@ -42,77 +45,11 @@ public class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchCl
         String indexName = AbstractRediSearchClient.getIndex(clazz);
 
         RedisSentinelConfiguration sentinelConfiguration = jedisConnectionFactory.getSentinelConfiguration();
-        if (sentinelConfiguration == null) {
-            return getClientForStandalone(indexName);
+        if (sentinelConfiguration != null) {
+            return jedisSearchConnectionFactory.getClient(indexName, sentinelConfiguration);
         }
-        return new Client(indexName, getJedisSentinelPool(sentinelConfiguration));
+        return jedisSearchConnectionFactory.getClientForStandalone(indexName);
     }
 
-    private JedisSentinelPool getJedisSentinelPool(RedisSentinelConfiguration sentinelConfiguration) {
 
-        if (jedisSentinelPool != null) {
-            return jedisSentinelPool;
-        }
-        String master = getMaster(sentinelConfiguration);
-
-        Set<String> sentinels = getSentinels(sentinelConfiguration);
-
-        int timeout = jedisConnectionFactory.getTimeout();
-
-        int poolSize = getPoolSize();
-
-        String password = jedisConnectionFactory.getPassword();
-
-        jedisSentinelPool = new JedisSentinelPool(master, sentinels, initPoolConfig(poolSize), timeout, password);
-        return jedisSentinelPool;
-    }
-
-    private Client getClientForStandalone(String indexName) {
-
-        String hostName = jedisConnectionFactory.getHostName();
-        int port = jedisConnectionFactory.getPort();
-        return new Client(indexName, hostName, port);
-    }
-
-    private Set<String> getSentinels(RedisSentinelConfiguration sentinelConfiguration) {
-
-        Set<RedisNode> sentinels = sentinelConfiguration.getSentinels();
-        return sentinels.stream()
-                .map(sentinel -> format("%s:%s", sentinel.getHost(), sentinel.getPort()))
-                .collect(toSet());
-    }
-
-    private String getMaster(RedisSentinelConfiguration sentinelConfiguration) {
-
-        NamedNode master = sentinelConfiguration.getMaster();
-        return master.getName();
-    }
-
-    private int getPoolSize() {
-
-        GenericObjectPoolConfig poolConfig = jedisConnectionFactory.getPoolConfig();
-        return poolConfig.getMaxTotal();
-    }
-
-    /**
-     * Constructs JedisPoolConfig object.
-     *
-     * @param poolSize size of the JedisPool
-     * @return {@link JedisPoolConfig} object with a few default settings
-     */
-    private static JedisPoolConfig initPoolConfig(int poolSize) {
-
-        JedisPoolConfig conf = new JedisPoolConfig();
-        conf.setMaxTotal(poolSize);
-        conf.setTestOnBorrow(false);
-        conf.setTestOnReturn(false);
-        conf.setTestOnCreate(false);
-        conf.setTestWhileIdle(false);
-        conf.setMinEvictableIdleTimeMillis(60000);
-        conf.setTimeBetweenEvictionRunsMillis(30000);
-        conf.setNumTestsPerEvictionRun(-1);
-        conf.setFairness(true);
-
-        return conf;
-    }
 }

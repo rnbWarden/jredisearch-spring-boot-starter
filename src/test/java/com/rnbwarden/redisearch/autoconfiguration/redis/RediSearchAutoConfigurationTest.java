@@ -13,19 +13,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class RediSearchAutoConfigurationTest {
 
     @Test
-    public void testAutoConfig() {
-
-        new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(RediSearchAutoConfiguration.class, MockJedisConfiguration.class))
-                .withClassLoader(new FilteredClassLoader(io.lettuce.core.RedisClient.class))
-                .withPropertyValues("redis.search.base-package=com.rnbwarden.redisearch")
-                .run((context) -> {
-                    assertThat(context).doesNotHaveBean(LettuceRediSearchClient.class);
-                    assertThat(context).hasBean("stubEntityRediSearchClient");
-                });
-    }
-
-    @Test
     public void testAutoConfigLettuce() {
 
         new ApplicationContextRunner()
@@ -34,6 +21,19 @@ public class RediSearchAutoConfigurationTest {
                 .withPropertyValues("redis.search.base-package=com.rnbwarden.redisearch")
                 .run((context) -> {
                     assertThat(context).doesNotHaveBean(JedisRediSearchClient.class);
+                    assertThat(context).hasBean("stubEntityRediSearchClient");
+                });
+    }
+
+    @Test
+    public void testAutoConfigJedis() {
+
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(RediSearchAutoConfiguration.class, MockJedisConfiguration.class))
+                .withClassLoader(new FilteredClassLoader(io.lettuce.core.RedisClient.class))
+                .withPropertyValues("redis.search.base-package=com.rnbwarden.redisearch")
+                .run((context) -> {
+                    assertThat(context).doesNotHaveBean(LettuceRediSearchClient.class);
                     assertThat(context).hasBean("stubEntityRediSearchClient");
                 });
     }
