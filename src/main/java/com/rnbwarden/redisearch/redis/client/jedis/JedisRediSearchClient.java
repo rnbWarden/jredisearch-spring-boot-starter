@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.exceptions.JedisDataException;
 
-import javax.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -36,6 +35,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
 
         super(redisSerializer, defaultMaxResults);
         this.jRediSearchClient = jRediSearchClient;
+        checkAndCreateIndex();
     }
 
     @Override
@@ -48,7 +48,6 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
-    @PostConstruct
     protected void checkAndCreateIndex() {
 
         try {
