@@ -108,24 +108,27 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         rediSearchOptions.getFieldNameValues().forEach((field, value) -> node.add(field.getName(), field.getQuerySyntax(value)));
         Query query = new Query(node.toString());
 
+        configureQueryOptions(rediSearchOptions, query);
+        return query;
+    }
+
+    private void configureQueryOptions(RediSearchOptions rediSearchOptions, Query query) {
+
         if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {
             query.limit(rediSearchOptions.getOffset().intValue(), rediSearchOptions.getLimit().intValue());
         } else {
-            query.limit(0, RediSearchOptions.defaultMaxValue.intValue());
+            query.limit(0, Integer.MAX_VALUE);
         }
-        return query;
+        if (rediSearchOptions.isNoContent()) {
+            query.setNoContent();
+        }
     }
 
     @Override
     protected SearchResults search(String queryString, RediSearchOptions rediSearchOptions) {
 
         Query query = new Query(queryString);
-        if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {
-            query.limit(rediSearchOptions.getOffset().intValue(), rediSearchOptions.getLimit().intValue());
-        }
-        if (rediSearchOptions.isNoContent()) {
-            query.setNoContent();
-        }
+        configureQueryOptions(rediSearchOptions, query);
         return search(query);
     }
 
