@@ -117,7 +117,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {
             query.limit(rediSearchOptions.getOffset().intValue(), rediSearchOptions.getLimit().intValue());
         } else {
-            query.limit(0, Integer.MAX_VALUE);
+            query.limit(0, 1000000);
         }
         if (rediSearchOptions.isNoContent()) {
             query.setNoContent();
