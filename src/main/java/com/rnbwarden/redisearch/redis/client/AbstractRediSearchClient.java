@@ -15,7 +15,6 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.Arrays.stream;

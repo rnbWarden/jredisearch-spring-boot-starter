@@ -9,7 +9,7 @@ import java.util.Map;
 @Data
 public class RediSearchOptions {
 
-    static long defaultMaxValue = Long.MAX_VALUE;
+    public static Long defaultMaxValue = Long.MAX_VALUE;
     private Map<SearchableField, String> fieldNameValues = new HashMap<>();
 
     protected boolean noContent;
