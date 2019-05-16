@@ -76,20 +76,21 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     public void save(E entity) {
 
         Map<String, Object> fields = serialize(entity);
-        jRediSearchClient.addDocument(entity.getPersistenceKey(), 1, fields, false, true, null);
+        String key = getQualifiedKey(entity.getPersistenceKey());
+        jRediSearchClient.addDocument(key, 1, fields, false, true, null);
     }
 
     @Override
     public void delete(String key) {
 
-        jRediSearchClient.deleteDocument(key, true);
+        jRediSearchClient.deleteDocument(getQualifiedKey(key), true);
     }
 
     @Override
     public Optional<E> findByKey(String key) {
 
         return performTimedOperation("findByKey",
-                () -> ofNullable(jRediSearchClient.getDocument(key, false))
+                () -> ofNullable(jRediSearchClient.getDocument(getQualifiedKey(key), false))
                         .map(d -> d.get(SERIALIZED_DOCUMENT))
                         .map(b -> (byte[]) b)
                         .map(redisSerializer::deserialize)
@@ -137,6 +138,6 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         io.redisearch.SearchResult searchResult = jRediSearchClient.search(query, false);
         logger.debug("found {} totalResults - count {}", searchResult.totalResults, searchResult.docs.stream().filter(Objects::nonNull).count());
 
-        return new JedisSearchResults(searchResult);
+        return new JedisSearchResults(keyPrefix, searchResult);
     }
 }

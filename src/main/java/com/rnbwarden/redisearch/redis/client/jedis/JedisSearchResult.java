@@ -10,10 +10,12 @@ public class JedisSearchResult implements SearchResult<String, Object> {
 
     private final Document delegate;
     private final Map<String, Object> properties = new HashMap<>();
+    private final String keyPrefix;
 
-    JedisSearchResult(Document delegate) {
+    JedisSearchResult(String keyPrefix, Document delegate) {
 
         this.delegate = delegate;
+        this.keyPrefix = keyPrefix;
         delegate.getProperties().forEach(entry -> properties.put(entry.getKey(), entry.getValue()));
     }
 
@@ -32,6 +34,7 @@ public class JedisSearchResult implements SearchResult<String, Object> {
     @Override
     public String getId() {
 
-        return delegate.getId();
+        String id = delegate.getId();
+        return id.replace(keyPrefix, id);
     }
 }

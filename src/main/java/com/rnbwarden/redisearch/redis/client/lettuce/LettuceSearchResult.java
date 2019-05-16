@@ -4,12 +4,14 @@ import com.rnbwarden.redisearch.redis.client.SearchResult;
 
 import java.util.Map;
 
-public class LettuceSearchResult<K, V> implements SearchResult<K, V> {
+public class LettuceSearchResult<K extends String, V> implements SearchResult<K, V> {
 
     private final com.redislabs.lettusearch.search.SearchResult<K, V> delegate;
+    private final String keyPrefix;
 
-     LettuceSearchResult(com.redislabs.lettusearch.search.SearchResult<K, V> searchResult) {
+    LettuceSearchResult(String keyPrefix, com.redislabs.lettusearch.search.SearchResult<K, V> searchResult) {
 
+        this.keyPrefix = keyPrefix;
         this.delegate = searchResult;
     }
 
@@ -26,8 +28,11 @@ public class LettuceSearchResult<K, V> implements SearchResult<K, V> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public K getId() {
 
-        return delegate.getDocumentId();
+        String documentId = delegate.getDocumentId();
+        String key = documentId.replace(keyPrefix, documentId);
+        return (K) key;
     }
 }

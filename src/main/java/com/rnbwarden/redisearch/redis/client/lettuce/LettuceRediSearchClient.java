@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
 
@@ -26,7 +27,6 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private final StatefulRediSearchConnection<String, Object> connection;
-    private final String index;
 
     public LettuceRediSearchClient(StatefulRediSearchConnection<String, Object> connection,
                                    CompressingJacksonSerializer<E> redisSerializer,
@@ -34,7 +34,6 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         super(redisSerializer, defaultMaxResults);
         this.connection = connection;
-        this.index = getIndex(clazz);
         checkAndCreateIndex();
     }
 
@@ -78,13 +77,14 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     public void save(E entity) {
 
         Map<String, Object> fields = serialize(entity);
-        connection.sync().add(index, entity.getPersistenceKey(), 1, fields, AddOptions.builder().build());
+        String key = getQualifiedKey(entity.getPersistenceKey());
+        connection.sync().add(index, key, 1, fields, AddOptions.builder().build());
     }
 
     @Override
     public void delete(String key) {
 
-        connection.sync().del(key);
+        connection.sync().del(getQualifiedKey(key));
     }
 
     @Override
@@ -93,7 +93,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         SearchOptions searchOptions = SearchOptions.builder().noContent(true).build();
 
         return performTimedOperation("findByKey",
-                () -> ofNullable(connection.sync().search(index, key, searchOptions))
+                () -> ofNullable(connection.sync().search(index, getQualifiedKey(key), searchOptions))
                         .map(com.redislabs.lettusearch.search.SearchResults::getResults)
                         .flatMap(results -> results.stream().findAny())
                         .map(com.redislabs.lettusearch.search.SearchResult::getFields)
@@ -116,7 +116,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, buildSearchOptions(options));
         logger.debug("found count {}", searchResults.getCount());
 
-        return new LettuceSearchResults(searchResults);
+        return new LettuceSearchResults(keyPrefix, searchResults);
     }
 
     private String buildQueryString(RediSearchOptions rediSearchOptions) {
@@ -124,7 +124,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         return rediSearchOptions.getFieldNameValues().entrySet().stream()
                 .map(entry -> {
                     SearchableField field = entry.getKey();
-                    return String.format("@%s:%s", field.getName(), field.getQuerySyntax(entry.getValue()));
+                    return format("@%s:%s", field.getName(), field.getQuerySyntax(entry.getValue()));
                 })
                 .collect(joining(" ")); //space imply intersection - AND
     }

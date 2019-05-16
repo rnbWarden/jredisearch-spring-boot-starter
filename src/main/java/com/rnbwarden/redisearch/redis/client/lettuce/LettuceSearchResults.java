@@ -11,9 +11,11 @@ import static java.util.stream.Collectors.toList;
 public class LettuceSearchResults implements SearchResults {
 
     private final com.redislabs.lettusearch.search.SearchResults<String, Object> delegate;
+    private final String keyPrefix;
 
-    LettuceSearchResults(com.redislabs.lettusearch.search.SearchResults<String, Object> delegate) {
+    LettuceSearchResults(String keyPrefix, com.redislabs.lettusearch.search.SearchResults<String, Object> delegate) {
 
+        this.keyPrefix = keyPrefix;
         this.delegate = delegate;
     }
 
@@ -28,7 +30,12 @@ public class LettuceSearchResults implements SearchResults {
 
         return delegate.getResults().stream()
                 .filter(Objects::nonNull)
-                .map(LettuceSearchResult::new)
+                .map(this::createSeachResult)
                 .collect(toList());
+    }
+
+    private LettuceSearchResult<String, Object> createSeachResult(com.redislabs.lettusearch.search.SearchResult<String, Object> searchResult) {
+
+        return new LettuceSearchResult<>(keyPrefix, searchResult);
     }
 }

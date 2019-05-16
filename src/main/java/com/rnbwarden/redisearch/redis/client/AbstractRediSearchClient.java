@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.lang.Nullable;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StopWatch;
 
 import java.lang.reflect.Field;
@@ -30,6 +29,8 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     private final Logger logger = LoggerFactory.getLogger(AbstractRediSearchClient.class);
     private final Long defaultMaxResults;
+    protected final String index;
+    protected final String keyPrefix;
 
     protected final RedisSerializer<E> redisSerializer;
     protected final Class<E> clazz;
@@ -41,6 +42,8 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         this.redisSerializer = redisSerializer;
         this.defaultMaxResults = defaultMaxResults;
         this.clazz = redisSerializer.getClazz();
+        this.index = getIndex(clazz);
+        this.keyPrefix = format("%s:", index);
         initSearchableFields();
     }
 
@@ -230,6 +233,11 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
         fieldNameValues.forEach((name, value) -> options.addField(getField(name), value));
         return find(options);
+    }
+
+    protected String getQualifiedKey(String key) {
+
+        return keyPrefix + key;
     }
 
     protected abstract SearchResults search(String queryString, RediSearchOptions searchOptions);
