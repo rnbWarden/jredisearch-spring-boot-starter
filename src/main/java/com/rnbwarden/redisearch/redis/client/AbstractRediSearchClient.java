@@ -107,10 +107,14 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     @SuppressWarnings("unchecked")
     private String getSerializedObjectValue(Object o) {
 
-        if (!Collection.class.isAssignableFrom(o.getClass()) || CollectionUtils.isEmpty((Collection) o)) {
+        if (o == null) {
+            return null;
+        }
+        if (!Collection.class.isAssignableFrom(o.getClass())) {
             return o.toString();
         }
         return (String) ((Collection) o).stream()
+                .filter(Objects::nonNull)
                 .map(Object::toString)
                 .collect(joining(","));
     }
