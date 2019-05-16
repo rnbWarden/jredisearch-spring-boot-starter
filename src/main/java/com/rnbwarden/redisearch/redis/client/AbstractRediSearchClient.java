@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.lang.Nullable;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StopWatch;
 
 import java.lang.reflect.Field;
@@ -103,12 +104,15 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         }
     }
 
+    @SuppressWarnings("unchecked")
     private String getSerializedObjectValue(Object o) {
 
-        if (Collection.class.isAssignableFrom(o.getClass())) {
-            return (String) ((Collection) o).stream().map(Object::toString).collect(joining(","));
+        if (!Collection.class.isAssignableFrom(o.getClass()) || CollectionUtils.isEmpty((Collection) o)) {
+            return o.toString();
         }
-        return o.toString();
+        return (String) ((Collection) o).stream()
+                .map(Object::toString)
+                .collect(joining(","));
     }
 
     protected List<T> getFields() {
