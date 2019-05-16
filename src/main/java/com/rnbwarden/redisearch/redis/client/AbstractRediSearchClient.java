@@ -15,10 +15,12 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, T extends SearchableField<E>> implements RediSearchClient<E> {
@@ -76,7 +78,8 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                         .map(RediSearchField.class::cast)
                         .map(annotation -> getFieldStrategy().get(annotation.type()).apply(annotation.name(), e -> {
                             try {
-                                return method.invoke(e, (Object[]) null).toString();
+                                Object o = method.invoke(e, (Object[]) null);
+                                return getSerializedObjectValue(o);
                             } catch (Exception ex) {
                                 throw new RuntimeException(String.format("cannot invoke method:%s on %s", method.getName(), e.getClass()), ex);
                             }
@@ -95,10 +98,18 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
             Object o = f.get(obj);
             f.setAccessible(accessible);
 
-            return o.toString();
+            return getSerializedObjectValue(o);
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(format("Unable to get RediSearch annotated entity value for entity: %s of class: %s", f.getName(), obj.getClass()), e);
         }
+    }
+
+    private String getSerializedObjectValue(Object o) {
+
+        if (o.getClass().isAssignableFrom(Collection.class)) {
+            return (String) ((Collection) o).stream().map(Object::toString).collect(joining(","));
+        }
+        return o.toString();
     }
 
     protected List<T> getFields() {
