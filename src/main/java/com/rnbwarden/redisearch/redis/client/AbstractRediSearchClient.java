@@ -48,7 +48,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         fields.addAll(getSearchFieldsFromMethods());
     }
 
-    protected abstract Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, T>> getFieldStrategy();
+    protected abstract Map<RediSearchFieldType, BiFunction<String, Function<E, String>, T>> getFieldStrategy();
 
     protected abstract void checkAndCreateIndex();
 
@@ -58,7 +58,11 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                 .map(field -> stream(field.getAnnotations())
                         .filter(annotation -> annotation instanceof RediSearchField)
                         .map(RediSearchField.class::cast)
-                        .map(annotation -> getFieldStrategy().get(annotation.type()).apply(annotation.name(), e -> getFieldValue(field, e)))
+                        .map(annotation -> {
+                            RediSearchFieldType type = annotation.type();
+                            String name = annotation.name();
+                            return getFieldStrategy().get(type).apply(name, e -> getFieldValue(field, e));
+                        })
                         .collect(toList()))
                 .flatMap(List::stream)
                 .collect(toList());
@@ -72,7 +76,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                         .map(RediSearchField.class::cast)
                         .map(annotation -> getFieldStrategy().get(annotation.type()).apply(annotation.name(), e -> {
                             try {
-                                return method.invoke(e, (Object[]) null);
+                                return method.invoke(e, (Object[]) null).toString();
                             } catch (Exception ex) {
                                 throw new RuntimeException(String.format("cannot invoke method:%s on %s", method.getName(), e.getClass()), ex);
                             }
@@ -82,7 +86,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                 .collect(toList());
     }
 
-    private static Object getFieldValue(Field f, Object obj) {
+    private String getFieldValue(Field f, Object obj) {
 
         try {
             boolean accessible = f.isAccessible();
@@ -91,7 +95,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
             Object o = f.get(obj);
             f.setAccessible(accessible);
 
-            return o;
+            return o.toString();
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(format("Unable to get RediSearch annotated entity value for entity: %s of class: %s", f.getName(), obj.getClass()), e);
         }

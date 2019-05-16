@@ -39,9 +39,9 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
-    protected Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, SearchableJedisField<E>>> getFieldStrategy() {
+    protected Map<RediSearchFieldType, BiFunction<String, Function<E, String>, SearchableJedisField<E>>> getFieldStrategy() {
 
-        Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, SearchableJedisField<E>>> fieldStrategy = new HashMap<>();
+        Map<RediSearchFieldType, BiFunction<String, Function<E, String>, SearchableJedisField<E>>> fieldStrategy = new HashMap<>();
         fieldStrategy.put(RediSearchFieldType.TEXT, SearchableJedisTextField::new);
         fieldStrategy.put(RediSearchFieldType.TAG, SearchableJedisTagField::new);
         return fieldStrategy;

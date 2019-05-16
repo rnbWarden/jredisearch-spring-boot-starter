@@ -10,7 +10,7 @@ public abstract class SearchableJedisField<E> extends SearchableField<E> {
     private final Schema.Field field;
 
     SearchableJedisField(String name,
-                         Function<E, Object> serializeFunction,
+                         Function<E, String> serializeFunction,
                          String querySyntax,
                          Schema.Field field) {
 
@@ -18,18 +18,8 @@ public abstract class SearchableJedisField<E> extends SearchableField<E> {
         this.field = field;
     }
 
-    public Schema.Field getField() {
+    Schema.Field getField() {
 
         return field;
-    }
-
-    public Object serialize(E entity) {
-
-        return serializeFunction.apply(entity);
-    }
-
-    public String getQuerySyntax(String value) {
-
-        return String.format(querySyntax, value);
     }
 }

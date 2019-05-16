@@ -10,7 +10,7 @@ public abstract class SearchableLettuceField<E> extends SearchableField<E> {
     private final Field field;
 
     SearchableLettuceField(String name,
-                           Function<E, Object> serializeFunction,
+                           Function<E, String> serializeFunction,
                            String querySyntax,
                            Field field) {
 
@@ -18,23 +18,8 @@ public abstract class SearchableLettuceField<E> extends SearchableField<E> {
         this.field = field;
     }
 
-    public String getName() {
-
-        return name;
-    }
-
-    public Field getField() {
+    Field getField() {
 
         return field;
-    }
-
-    public Object serialize(E entity) {
-
-        return serializeFunction.apply(entity);
-    }
-
-    public String getQuerySyntax(String value) {
-
-        return String.format(querySyntax, value);
     }
 }

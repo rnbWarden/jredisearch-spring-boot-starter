@@ -8,7 +8,7 @@ import java.util.function.Function;
 public class SearchableJedisTextField<E> extends SearchableJedisField<E> implements SearchableTextField {
 
     public SearchableJedisTextField(String name,
-                                    Function<E, Object> serializeFunction) {
+                                    Function<E, String> serializeFunction) {
 
         super(name, serializeFunction, QUERY_SYNTAX, new Schema.TextField(name));
     }

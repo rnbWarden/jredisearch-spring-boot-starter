@@ -8,7 +8,7 @@ import java.util.function.Function;
 public class SearchableLettuceTextField<E> extends SearchableLettuceField<E> implements SearchableTextField {
 
     public SearchableLettuceTextField(String name,
-                                      Function<E, Object> serializeFunction) {
+                                      Function<E, String> serializeFunction) {
 
         super(name, serializeFunction, QUERY_SYNTAX, TextField.builder().name(name).build());
     }

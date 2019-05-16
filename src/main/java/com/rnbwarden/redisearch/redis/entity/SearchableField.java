@@ -5,11 +5,11 @@ import java.util.function.Function;
 public abstract class SearchableField<E> {
 
     protected final String name;
-    protected final Function<E, Object> serializeFunction;
+    protected final Function<E, String> serializeFunction;
     protected final String querySyntax;
 
     public SearchableField(String name,
-                           Function<E, Object> serializeFunction,
+                           Function<E, String> serializeFunction,
                            String querySyntax) {
 
         this.name = name;

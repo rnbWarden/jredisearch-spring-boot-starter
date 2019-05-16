@@ -39,9 +39,9 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     }
 
     @Override
-    protected Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, SearchableLettuceField<E>>> getFieldStrategy() {
+    protected Map<RediSearchFieldType, BiFunction<String, Function<E, String>, SearchableLettuceField<E>>> getFieldStrategy() {
 
-        Map<RediSearchFieldType, BiFunction<String, Function<E, Object>, SearchableLettuceField<E>>> fieldStrategy = new HashMap<>();
+        Map<RediSearchFieldType, BiFunction<String, Function<E, String>, SearchableLettuceField<E>>> fieldStrategy = new HashMap<>();
         fieldStrategy.put(RediSearchFieldType.TEXT, SearchableLettuceTextField::new);
         fieldStrategy.put(RediSearchFieldType.TAG, SearchableLettuceTagField::new);
         return fieldStrategy;

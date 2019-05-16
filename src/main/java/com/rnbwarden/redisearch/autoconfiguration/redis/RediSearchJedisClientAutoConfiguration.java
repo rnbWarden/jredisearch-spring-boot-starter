@@ -33,8 +33,6 @@ public class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchCl
     @Autowired
     private JedisSearchConnectionFactory jedisSearchConnectionFactory;
 
-    private JedisSentinelPool jedisSentinelPool;
-
     @Override
     @SuppressWarnings("unchecked")
     void createRediSearchBeans(Class<?> clazz) {
