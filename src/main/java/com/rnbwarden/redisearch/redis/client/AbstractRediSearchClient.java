@@ -135,7 +135,12 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected Map<String, Object> serialize(E entity) {
 
         Map<String, Object> fields = new HashMap<>();
-        getFields().forEach(field -> fields.put(field.getName(), field.serialize(entity)));
+        getFields().forEach(field -> {
+            String serializedValue = field.serialize(entity);
+            if (serializedValue != null) {
+                fields.put(field.getName(), serializedValue);
+            }
+        });
         fields.put(SERIALIZED_DOCUMENT, redisSerializer.serialize(entity));
         return fields;
     }

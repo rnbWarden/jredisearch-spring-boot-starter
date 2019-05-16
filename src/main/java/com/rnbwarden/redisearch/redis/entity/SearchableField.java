@@ -22,7 +22,7 @@ public abstract class SearchableField<E> {
         return name;
     }
 
-    public Object serialize(E entity) {
+    public String serialize(E entity) {
 
         return serializeFunction.apply(entity);
     }
