@@ -106,7 +106,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     private String getSerializedObjectValue(Object o) {
 
-        if (o.getClass().isAssignableFrom(Collection.class)) {
+        if (Collection.class.isAssignableFrom(o.getClass())) {
             return (String) ((Collection) o).stream().map(Object::toString).collect(joining(","));
         }
         return o.toString();
