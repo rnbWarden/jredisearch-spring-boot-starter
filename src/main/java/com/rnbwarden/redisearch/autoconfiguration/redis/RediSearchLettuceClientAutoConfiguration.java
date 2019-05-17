@@ -40,7 +40,7 @@ public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearch
             @Override
             public String decodeKey(ByteBuffer bytes) {
 
-                return bytes.hasArray() ? (String) compressingJacksonSerializer.deserialize(bytes.array()) : null;
+                return bytes.hasArray() ? new String(bytes.array()) : null;
             }
 
             @Override
@@ -52,7 +52,7 @@ public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearch
             @Override
             public ByteBuffer encodeKey(String key) {
 
-                return ByteBuffer.wrap(compressingJacksonSerializer.serialize(key));
+                return ByteBuffer.wrap(key.getBytes());
             }
 
             @Override
