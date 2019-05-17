@@ -90,14 +90,9 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     @Override
     public Optional<E> findByKey(String key) {
 
-        SearchOptions searchOptions = SearchOptions.builder().noContent(true).build();
-
         return performTimedOperation("findByKey",
-                () -> ofNullable(connection.sync().search(index, getQualifiedKey(key), searchOptions))
-                        .map(com.redislabs.lettusearch.search.SearchResults::getResults)
-                        .flatMap(results -> results.stream().findAny())
-                        .map(com.redislabs.lettusearch.search.SearchResult::getFields)
-                        .map(fields -> (byte[]) fields.get(SERIALIZED_DOCUMENT))
+                () -> ofNullable(connection.sync().get(getQualifiedKey(key)))
+                        .map(byte[].class::cast)
                         .map(redisSerializer::deserialize));
     }
 
