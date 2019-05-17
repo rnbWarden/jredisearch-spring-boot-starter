@@ -32,7 +32,7 @@ public class LettuceSearchResult<K extends String, V> implements SearchResult<K,
     public K getId() {
 
         String documentId = delegate.getDocumentId();
-        String key = documentId.replace(keyPrefix, documentId);
+        String key = documentId.substring(keyPrefix.length());
         return (K) key;
     }
 }

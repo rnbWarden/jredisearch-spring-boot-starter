@@ -35,6 +35,6 @@ public class JedisSearchResult implements SearchResult<String, Object> {
     public String getId() {
 
         String id = delegate.getId();
-        return id.replace(keyPrefix, id);
+        return id.substring(keyPrefix.length());
     }
 }
