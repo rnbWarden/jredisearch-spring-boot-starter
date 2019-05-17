@@ -91,7 +91,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     public Optional<E> findByKey(String key) {
 
         return performTimedOperation("findByKey",
-                () -> ofNullable(connection.sync().get(getQualifiedKey(key)))
+                () -> ofNullable(connection.sync().get(index, getQualifiedKey(key)))
                         .map(byte[].class::cast)
                         .map(redisSerializer::deserialize));
     }
