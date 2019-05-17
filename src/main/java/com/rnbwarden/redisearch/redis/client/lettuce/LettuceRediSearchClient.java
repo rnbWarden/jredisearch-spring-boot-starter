@@ -78,7 +78,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         Map<String, Object> fields = serialize(entity);
         String key = getQualifiedKey(entity.getPersistenceKey());
-        connection.sync().add(index, key, 1, fields, AddOptions.builder().build());
+        connection.sync().add(index, key, 1, fields, AddOptions.builder().replace(true).build());
     }
 
     @Override
