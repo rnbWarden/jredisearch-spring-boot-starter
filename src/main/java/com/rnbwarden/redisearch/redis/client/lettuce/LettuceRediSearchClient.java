@@ -1,5 +1,6 @@
 package com.rnbwarden.redisearch.redis.client.lettuce;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
 import com.redislabs.lettusearch.search.*;
 import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
@@ -27,14 +28,17 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private final StatefulRediSearchConnection<String, Object> connection;
+    private final ObjectMapper objectMapper;
 
     public LettuceRediSearchClient(Class<E> clazz,
                                    StatefulRediSearchConnection<String, Object> connection,
                                    RedisSerializer<E> redisSerializer,
-                                   Long defaultMaxResults) {
+                                   Long defaultMaxResults,
+                                   ObjectMapper objectMapper) {
 
         super(clazz, redisSerializer, defaultMaxResults);
         this.connection = connection;
+        this.objectMapper = objectMapper;
         checkAndCreateIndex();
     }
 

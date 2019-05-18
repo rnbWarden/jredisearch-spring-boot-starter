@@ -31,7 +31,7 @@ public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearch
         RedisCodec redisCodec = useCompression ? compressingRedisCodec(redisSerializer) : StringCodec.UTF8;
 
         StatefulRediSearchConnection<String, String> statefulRediSearchConnection = rediSearchClient.connect(redisCodec);
-        LettuceRediSearchClient lettuceRediSearchClient = new LettuceRediSearchClient(clazz, statefulRediSearchConnection, redisSerializer, defaultMaxResults);
+        LettuceRediSearchClient lettuceRediSearchClient = new LettuceRediSearchClient(clazz, statefulRediSearchConnection, redisSerializer, defaultMaxResults, primaryObjectMapper);
 
         beanFactory.registerSingleton(getRedisearchBeanName(clazz), lettuceRediSearchClient);
     }
