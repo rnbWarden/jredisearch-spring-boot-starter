@@ -1,6 +1,5 @@
 package com.rnbwarden.redisearch.redis.client;
 
-import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.entity.*;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -33,16 +32,17 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected final String keyPrefix;
 
     protected final RedisSerializer<E> redisSerializer;
-    protected final Class<E> clazz;
+    private final Class<E> clazz;
     private final List<T> fields = new ArrayList<>();
 
-    protected AbstractRediSearchClient(CompressingJacksonSerializer<E> redisSerializer,
+    protected AbstractRediSearchClient(Class<E> clazz,
+                                       RedisSerializer<E> redisSerializer,
                                        Long defaultMaxResults) {
 
         this.redisSerializer = redisSerializer;
         this.defaultMaxResults = defaultMaxResults;
-        this.clazz = redisSerializer.getClazz();
-        this.index = getIndex(clazz);
+        this.clazz = clazz;
+        this.index = getIndex(this.clazz);
         this.keyPrefix = format("%s:", index);
         initSearchableFields();
     }

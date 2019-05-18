@@ -1,5 +1,6 @@
 package com.rnbwarden.redisearch.autoconfiguration.redis;
 
+import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.redis.client.jedis.JedisRediSearchClient;
 import io.redisearch.client.Client;
@@ -14,6 +15,7 @@ import org.springframework.data.redis.connection.RedisNode;
 import org.springframework.data.redis.connection.RedisSentinelConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnection;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisSentinelPool;
@@ -37,7 +39,9 @@ public class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchCl
     @SuppressWarnings("unchecked")
     void createRediSearchBeans(Class<?> clazz) {
 
-        beanFactory.registerSingleton(getRedisearchBeanName(clazz), new JedisRediSearchClient(createClient(clazz), createRedisSerializer(clazz), defaultMaxResults));
+        Client client = createClient(clazz);
+        RedisSerializer<?> redisSerializer = createRedisSerializer(clazz);
+        beanFactory.registerSingleton(getRedisearchBeanName(clazz), new JedisRediSearchClient(clazz, client, redisSerializer, defaultMaxResults));
     }
 
     private Client createClient(Class<?> clazz) {

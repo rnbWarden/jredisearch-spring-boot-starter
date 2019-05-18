@@ -2,7 +2,6 @@ package com.rnbwarden.redisearch.redis.client.lettuce;
 
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
 import com.redislabs.lettusearch.search.*;
-import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.redis.client.RediSearchOptions;
 import com.rnbwarden.redisearch.redis.client.SearchResults;
@@ -12,6 +11,7 @@ import com.rnbwarden.redisearch.redis.entity.SearchableField;
 import io.lettuce.core.RedisCommandExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.serializer.RedisSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,11 +28,12 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private final StatefulRediSearchConnection<String, Object> connection;
 
-    public LettuceRediSearchClient(StatefulRediSearchConnection<String, Object> connection,
-                                   CompressingJacksonSerializer<E> redisSerializer,
+    public LettuceRediSearchClient(Class<E> clazz,
+                                   StatefulRediSearchConnection<String, Object> connection,
+                                   RedisSerializer<E> redisSerializer,
                                    Long defaultMaxResults) {
 
-        super(redisSerializer, defaultMaxResults);
+        super(clazz, redisSerializer, defaultMaxResults);
         this.connection = connection;
         checkAndCreateIndex();
     }

@@ -1,6 +1,5 @@
 package com.rnbwarden.redisearch.redis.client.jedis;
 
-import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.redis.client.RediSearchOptions;
 import com.rnbwarden.redisearch.redis.client.SearchResults;
@@ -12,6 +11,7 @@ import io.redisearch.client.Client;
 import io.redisearch.querybuilder.QueryNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 import java.util.HashMap;
@@ -29,11 +29,12 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     private static final Logger logger = LoggerFactory.getLogger(JedisRediSearchClient.class);
     private final Client jRediSearchClient;
 
-    public JedisRediSearchClient(Client jRediSearchClient,
-                                 CompressingJacksonSerializer<E> redisSerializer,
+    public JedisRediSearchClient(Class<E> clazz,
+                                 Client jRediSearchClient,
+                                 RedisSerializer<E> redisSerializer,
                                  Long defaultMaxResults) {
 
-        super(redisSerializer, defaultMaxResults);
+        super(clazz, redisSerializer, defaultMaxResults);
         this.jRediSearchClient = jRediSearchClient;
         checkAndCreateIndex();
     }

@@ -14,6 +14,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializer;
 
 import javax.annotation.PostConstruct;
 import java.util.Set;
@@ -23,6 +25,9 @@ public abstract class AbstractRediSearchClientAutoConfiguration implements RediS
 
     @Value("${redis.search.base-package}")
     protected String basePackage;
+
+    @Value("${redis.search.useCompression:true}")
+    protected boolean useCompression;
 
     @Autowired
     protected ObjectMapper primaryObjectMapper;
@@ -71,9 +76,16 @@ public abstract class AbstractRediSearchClientAutoConfiguration implements RediS
         return simpleName + "RediSearchClient";
     }
 
-    CompressingJacksonSerializer<?> createRedisSerializer(Class<?> clazz) {
+    <T> RedisSerializer<T> createRedisSerializer(Class<T> clazz) {
 
         return new CompressingJacksonSerializer<>(clazz, primaryObjectMapper);
+    }
+
+    protected <T> Jackson2JsonRedisSerializer<T> createJackson2JsonRedisSerializer(Class<T> clazz) {
+
+        Jackson2JsonRedisSerializer<T> jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<>(clazz);
+        jackson2JsonRedisSerializer.setObjectMapper(primaryObjectMapper);
+        return jackson2JsonRedisSerializer;
     }
 
     @Override

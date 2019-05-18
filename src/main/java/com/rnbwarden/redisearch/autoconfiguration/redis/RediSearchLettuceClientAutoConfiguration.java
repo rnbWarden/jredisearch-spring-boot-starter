@@ -2,16 +2,18 @@ package com.rnbwarden.redisearch.autoconfiguration.redis;
 
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
 import com.redislabs.springredisearch.RediSearchConfiguration;
-import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.redis.client.lettuce.LettuceRediSearchClient;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.codec.RedisCodec;
+import io.lettuce.core.codec.StringCodec;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.serializer.RedisSerializer;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 @Configuration("RediSearchLettuceClientAutoConfiguration")
 @ConditionalOnClass({RedisClient.class, com.redislabs.lettusearch.RediSearchClient.class})
@@ -19,23 +21,24 @@ import java.nio.ByteBuffer;
 public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
 
     @Autowired
-    private com.redislabs.lettusearch.RediSearchClient client;
+    private com.redislabs.lettusearch.RediSearchClient rediSearchClient;
 
     @Override
     @SuppressWarnings("unchecked")
     void createRediSearchBeans(Class<?> clazz) {
 
-        CompressingJacksonSerializer<?> compressingJacksonSerializer = super.createRedisSerializer(clazz);
+        RedisSerializer<?> redisSerializer = useCompression ? super.createRedisSerializer(clazz) : createJackson2JsonRedisSerializer(clazz);
+        RedisCodec redisCodec = useCompression ? compressingRedisCodec(redisSerializer) : StringCodec.UTF8;
 
-        RedisCodec redisCodec = compressingRedisCodec(compressingJacksonSerializer);
-        StatefulRediSearchConnection<Object, Object> statefulRediSearchConnection = client.connect(redisCodec);
+        StatefulRediSearchConnection<String, String> statefulRediSearchConnection = rediSearchClient.connect(redisCodec);
+        LettuceRediSearchClient lettuceRediSearchClient = new LettuceRediSearchClient(clazz, statefulRediSearchConnection, redisSerializer, defaultMaxResults);
 
-        beanFactory.registerSingleton(getRedisearchBeanName(clazz), new LettuceRediSearchClient(statefulRediSearchConnection, compressingJacksonSerializer, defaultMaxResults));
+        beanFactory.registerSingleton(getRedisearchBeanName(clazz), lettuceRediSearchClient);
     }
 
-    private RedisCodec<String, Object> compressingRedisCodec(CompressingJacksonSerializer<?> compressingJacksonSerializer) {
+    private <T> RedisCodec<String, T> compressingRedisCodec(RedisSerializer<T> redisSerializer) {
 
-        return new RedisCodec<String, Object>() {
+        return new RedisCodec<String, T>() {
 
             @Override
             public String decodeKey(ByteBuffer bytes) {
@@ -44,9 +47,9 @@ public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearch
             }
 
             @Override
-            public Object decodeValue(ByteBuffer bytes) {
+            public T decodeValue(ByteBuffer bytes) {
 
-                return bytes.hasArray() ? compressingJacksonSerializer.deserialize(bytes.array()) : null;
+                return bytes.hasArray() ? redisSerializer.deserialize(bytes.array()) : null;
             }
 
             @Override
@@ -56,9 +59,10 @@ public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearch
             }
 
             @Override
-            public ByteBuffer encodeValue(Object value) {
+            public ByteBuffer encodeValue(T value) {
 
-                return ByteBuffer.wrap(compressingJacksonSerializer.serialize(value));
+                byte[] serialize = redisSerializer.serialize(value);
+                return ByteBuffer.wrap(Objects.requireNonNull(serialize));
             }
         };
     }
