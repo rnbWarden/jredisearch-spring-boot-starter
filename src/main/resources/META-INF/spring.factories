@@ -1,1 +1,1 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.rnbwarden.redisearch.autoconfiguration.redis.RediSearchAutoConfiguration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.rnbwarden.redisearch.autoconfiguration.RediSearchAutoConfiguration

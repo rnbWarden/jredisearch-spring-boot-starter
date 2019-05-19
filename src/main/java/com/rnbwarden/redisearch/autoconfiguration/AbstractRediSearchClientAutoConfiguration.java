@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.autoconfiguration.redis;
+package com.rnbwarden.redisearch.autoconfiguration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;

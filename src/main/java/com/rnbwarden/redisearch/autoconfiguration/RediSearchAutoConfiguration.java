@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.autoconfiguration.redis;
+package com.rnbwarden.redisearch.autoconfiguration;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;

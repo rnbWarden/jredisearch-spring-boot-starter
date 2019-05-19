@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.autoconfiguration.redis;
+package com.rnbwarden.redisearch.autoconfiguration;
 
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.context.ApplicationContextAware;

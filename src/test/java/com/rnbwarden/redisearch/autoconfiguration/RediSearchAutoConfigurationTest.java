@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.autoconfiguration.redis;
+package com.rnbwarden.redisearch.autoconfiguration;
 
 import com.rnbwarden.redisearch.redis.client.jedis.JedisRediSearchClient;
 import com.rnbwarden.redisearch.redis.client.lettuce.LettuceRediSearchClient;

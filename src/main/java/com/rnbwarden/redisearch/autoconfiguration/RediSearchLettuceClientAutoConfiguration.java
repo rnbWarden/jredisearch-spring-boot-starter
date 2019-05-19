@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.autoconfiguration.redis;
+package com.rnbwarden.redisearch.autoconfiguration;
 
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
 import com.redislabs.springredisearch.RediSearchConfiguration;
