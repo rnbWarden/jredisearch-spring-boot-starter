@@ -1,6 +1,6 @@
-package com.rnbwarden.redisearch.redis.client.jedis;
+package com.rnbwarden.redisearch.client.jedis;
 
-import com.rnbwarden.redisearch.redis.client.SearchableTagField;
+import com.rnbwarden.redisearch.client.SearchableTagField;
 import io.redisearch.Schema;
 
 import java.util.function.Function;

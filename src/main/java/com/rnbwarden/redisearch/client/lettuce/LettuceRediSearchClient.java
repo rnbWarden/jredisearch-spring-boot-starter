@@ -1,15 +1,15 @@
-package com.rnbwarden.redisearch.redis.client.lettuce;
+package com.rnbwarden.redisearch.client.lettuce;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
 import com.redislabs.lettusearch.search.*;
-import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
-import com.rnbwarden.redisearch.redis.client.RediSearchOptions;
-import com.rnbwarden.redisearch.redis.client.SearchResults;
-import com.rnbwarden.redisearch.redis.entity.RediSearchFieldType;
-import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
-import com.rnbwarden.redisearch.redis.entity.SearchableField;
+import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
+import com.rnbwarden.redisearch.client.RediSearchOptions;
+import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.entity.RediSearchFieldType;
+import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
+import com.rnbwarden.redisearch.entity.SearchableField;
 import io.lettuce.core.RedisCommandExecutionException;
+import io.lettuce.core.codec.RedisCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
@@ -28,17 +28,19 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private final StatefulRediSearchConnection<String, Object> connection;
-    private final ObjectMapper objectMapper;
+    private final StatefulRediSearchConnection<String, String> uncompressedConnection;
+    com.redislabs.lettusearch.RediSearchClient rediSearchClient;
 
     public LettuceRediSearchClient(Class<E> clazz,
-                                   StatefulRediSearchConnection<String, Object> connection,
+                                   com.redislabs.lettusearch.RediSearchClient rediSearchClient,
+                                   RedisCodec<String, Object> redisCodec,
                                    RedisSerializer<E> redisSerializer,
-                                   Long defaultMaxResults,
-                                   ObjectMapper objectMapper) {
+                                   Long defaultMaxResults) {
 
         super(clazz, redisSerializer, defaultMaxResults);
-        this.connection = connection;
-        this.objectMapper = objectMapper;
+        this.rediSearchClient = rediSearchClient;
+        this.connection = rediSearchClient.connect(redisCodec);
+        this.uncompressedConnection = rediSearchClient.connect();
         checkAndCreateIndex();
     }
 
@@ -55,10 +57,10 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     protected void checkAndCreateIndex() {
 
         try {
-            this.connection.sync().indexInfo(index);
+            this.uncompressedConnection.sync().indexInfo(index);
         } catch (RedisCommandExecutionException ex) {
             if (ex.getCause().getMessage().equals("Unknown Index name")) {
-                connection.sync().create(index, createSchema());
+                uncompressedConnection.sync().create(index, createSchema());
             }
         }
     }
@@ -75,7 +77,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     @Override
     public void dropIndex() {
 
-        connection.sync().drop(index, DropOptions.builder().keepDocs(false).build());
+        uncompressedConnection.sync().drop(index, DropOptions.builder().keepDocs(false).build());
     }
 
     @Override
@@ -96,9 +98,16 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     public Optional<E> findByKey(String key) {
 
         return performTimedOperation("findByKey",
-                () -> ofNullable(connection.sync().get(index, getQualifiedKey(key)))
+                () -> ofNullable(get(getQualifiedKey(key)))
+                        .map(map -> map.get(SERIALIZED_DOCUMENT))
                         .map(byte[].class::cast)
                         .map(redisSerializer::deserialize));
+    }
+
+    private Map<String, Object> get(String key) {
+
+        Map<String, Object> stringObjectMap = connection.sync().get(index, key);
+        return stringObjectMap;
     }
 
     @Override

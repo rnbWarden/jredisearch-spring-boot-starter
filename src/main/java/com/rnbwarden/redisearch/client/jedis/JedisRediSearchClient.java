@@ -1,10 +1,10 @@
-package com.rnbwarden.redisearch.redis.client.jedis;
+package com.rnbwarden.redisearch.client.jedis;
 
-import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
-import com.rnbwarden.redisearch.redis.client.RediSearchOptions;
-import com.rnbwarden.redisearch.redis.client.SearchResults;
-import com.rnbwarden.redisearch.redis.entity.RediSearchFieldType;
-import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
+import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
+import com.rnbwarden.redisearch.client.RediSearchOptions;
+import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.entity.RediSearchFieldType;
+import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import io.redisearch.Query;
 import io.redisearch.Schema;
 import io.redisearch.client.Client;

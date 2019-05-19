@@ -1,6 +1,6 @@
-package com.rnbwarden.redisearch.redis.client;
+package com.rnbwarden.redisearch.client;
 
-import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
+import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import org.springframework.lang.NonNull;
 
 import java.util.List;

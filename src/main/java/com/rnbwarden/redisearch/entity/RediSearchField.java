@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.redis.entity;
+package com.rnbwarden.redisearch.entity;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

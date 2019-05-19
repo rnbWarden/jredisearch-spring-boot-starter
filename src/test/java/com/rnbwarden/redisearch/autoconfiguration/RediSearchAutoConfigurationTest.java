@@ -1,7 +1,7 @@
 package com.rnbwarden.redisearch.autoconfiguration;
 
-import com.rnbwarden.redisearch.redis.client.jedis.JedisRediSearchClient;
-import com.rnbwarden.redisearch.redis.client.lettuce.LettuceRediSearchClient;
+import com.rnbwarden.redisearch.client.jedis.JedisRediSearchClient;
+import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import org.junit.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;

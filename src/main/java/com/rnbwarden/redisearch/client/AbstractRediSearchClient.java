@@ -1,6 +1,6 @@
-package com.rnbwarden.redisearch.redis.client;
+package com.rnbwarden.redisearch.client;
 
-import com.rnbwarden.redisearch.redis.entity.*;
+import com.rnbwarden.redisearch.entity.*;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.slf4j.Logger;

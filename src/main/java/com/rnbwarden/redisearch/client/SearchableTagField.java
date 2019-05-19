@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.redis.client;
+package com.rnbwarden.redisearch.client;
 
 public interface SearchableTagField {
 

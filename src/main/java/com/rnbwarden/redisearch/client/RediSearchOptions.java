@@ -1,6 +1,6 @@
-package com.rnbwarden.redisearch.redis.client;
+package com.rnbwarden.redisearch.client;
 
-import com.rnbwarden.redisearch.redis.entity.SearchableField;
+import com.rnbwarden.redisearch.entity.SearchableField;
 import lombok.Data;
 
 import java.util.HashMap;

@@ -1,7 +1,7 @@
-package com.rnbwarden.redisearch.redis.client.jedis;
+package com.rnbwarden.redisearch.client.jedis;
 
-import com.rnbwarden.redisearch.redis.client.SearchResult;
-import com.rnbwarden.redisearch.redis.client.SearchResults;
+import com.rnbwarden.redisearch.client.SearchResult;
+import com.rnbwarden.redisearch.client.SearchResults;
 import io.redisearch.Document;
 
 import java.util.List;

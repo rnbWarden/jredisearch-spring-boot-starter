@@ -2,7 +2,7 @@ package com.rnbwarden.redisearch.autoconfiguration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rnbwarden.redisearch.CompressingJacksonSerializer;
-import com.rnbwarden.redisearch.redis.entity.RediSearchEntity;
+import com.rnbwarden.redisearch.entity.RediSearchEntity;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +26,8 @@ public abstract class AbstractRediSearchClientAutoConfiguration implements RediS
     @Value("${redis.search.base-package}")
     protected String basePackage;
 
-    @Value("${redis.search.useCompression:true}")
-    protected boolean useCompression;
+//    @Value("${redis.search.useCompression:true}")
+//    protected boolean useCompression;
 
     @Autowired
     protected ObjectMapper primaryObjectMapper;

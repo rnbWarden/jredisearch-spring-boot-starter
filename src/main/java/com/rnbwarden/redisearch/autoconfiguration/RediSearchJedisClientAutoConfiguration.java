@@ -1,7 +1,7 @@
 package com.rnbwarden.redisearch.autoconfiguration;
 
-import com.rnbwarden.redisearch.redis.client.AbstractRediSearchClient;
-import com.rnbwarden.redisearch.redis.client.jedis.JedisRediSearchClient;
+import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
+import com.rnbwarden.redisearch.client.jedis.JedisRediSearchClient;
 import io.redisearch.client.Client;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.springframework.beans.factory.annotation.Autowired;

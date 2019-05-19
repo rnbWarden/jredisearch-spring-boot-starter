@@ -1,6 +1,6 @@
-package com.rnbwarden.redisearch.redis.client.lettuce;
+package com.rnbwarden.redisearch.client.lettuce;
 
-import com.rnbwarden.redisearch.redis.client.SearchResult;
+import com.rnbwarden.redisearch.client.SearchResult;
 
 import java.util.Map;
 

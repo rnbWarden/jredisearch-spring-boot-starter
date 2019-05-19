@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.redis.entity;
+package com.rnbwarden.redisearch.entity;
 
 public enum RediSearchFieldType {
 
