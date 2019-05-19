@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.redis;
+package com.rnbwarden.redisearch.autoconfiguration;
 
 import com.rnbwarden.redisearch.redis.entity.RediSearchEntity;
 import com.rnbwarden.redisearch.redis.entity.RedisSearchableEntity;
