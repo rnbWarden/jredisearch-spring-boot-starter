@@ -12,8 +12,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 @Ignore // uncomment to test with local redis w/ Search module
 public class LettuceTest {
@@ -48,6 +47,7 @@ public class LettuceTest {
 
         assertEquals(1, (long) lettuceRediSearchClient.getKeyCount());
         assertNotNull(lettuceRediSearchClient.findByKey(stub.getPersistenceKey()));
+        assertTrue(lettuceRediSearchClient.findAll(0, 100, false).hasResults());
 
         try {
             lettuceRediSearchClient.dropIndex();
