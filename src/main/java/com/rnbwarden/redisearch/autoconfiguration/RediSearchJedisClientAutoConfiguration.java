@@ -18,7 +18,7 @@ import static java.lang.String.format;
 
 @Configuration("RediSearchJedisClientAutoConfiguration")
 @ConditionalOnClass({GenericObjectPool.class, JedisConnection.class, Jedis.class, Client.class})
-@ComponentScan(basePackages = "com.rnbwarden.redisearch.autoconfiguration.redis")
+@ComponentScan(basePackages = "com.rnbwarden.redisearch.autoconfiguration")
 public class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
 
     @Autowired
