@@ -104,7 +104,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     @Override
     public void delete(String key) {
 
-        execute(connection -> connection.sync().del(getQualifiedKey(key)));
+        execute(connection -> connection.sync().del(index, getQualifiedKey(key), true));
     }
 
     @Override
