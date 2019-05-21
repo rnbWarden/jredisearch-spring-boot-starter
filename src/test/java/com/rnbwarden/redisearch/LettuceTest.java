@@ -18,7 +18,7 @@ import java.util.List;
 import static org.assertj.core.util.Maps.newHashMap;
 import static org.junit.Assert.*;
 
-//@Ignore // uncomment to test with local redis w/ Search module
+@Ignore // un-ignore to test with local redis w/ Search module
 public class LettuceTest {
 
     private LettuceRediSearchClient lettuceRediSearchClient;
