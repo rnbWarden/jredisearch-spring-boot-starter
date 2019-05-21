@@ -16,7 +16,7 @@ public class StubEntity implements RedisSearchableEntity {
     @RediSearchField(name = "column1")
     String column1;
 
-    @Override
+    @Override //@JsonIgnore
     public String getPersistenceKey() {
 
         return key;
