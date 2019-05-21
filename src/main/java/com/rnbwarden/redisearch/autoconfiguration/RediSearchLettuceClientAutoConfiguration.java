@@ -54,18 +54,18 @@ public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearch
         }
 
         @Override
-        public Object decodeValue(ByteBuffer bytes) {
-
-            return byteArrayCodec.decodeValue(bytes);
-        }
-
-        @Override
         public ByteBuffer encodeValue(Object value) {
 
             if (value instanceof byte[]) {
                 return ByteBuffer.wrap((byte[]) value);
             }
             return stringCodec.encodeValue((String) value);
+        }
+
+        @Override
+        public Object decodeValue(ByteBuffer bytes) {
+
+            return byteArrayCodec.decodeValue(bytes);
         }
     }
 }
