@@ -22,9 +22,9 @@ public class RediSearchAutoConfiguration {
         return new ObjectMapper();
     }
 
-    @ConditionalOnMissingBean(name = "redisSearchObjectMapper")
-    @Bean(name = "redisSearchObjectMapper")
-    public ObjectMapper redisSearchObjectMapper(ObjectMapper objectMapper) {
+    @ConditionalOnMissingBean(name = "rediSearchObjectMapper")
+    @Bean(name = "rediSearchObjectMapper")
+    public ObjectMapper rediSearchObjectMapper(ObjectMapper objectMapper) {
 
         return objectMapper;
     }

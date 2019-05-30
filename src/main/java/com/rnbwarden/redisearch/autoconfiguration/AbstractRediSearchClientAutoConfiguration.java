@@ -30,8 +30,8 @@ public abstract class AbstractRediSearchClientAutoConfiguration implements RediS
 //    protected boolean useCompression;
 
     @Autowired
-    @Qualifier("redisSearchObjectMapper")
-    private ObjectMapper redisSearchObjectMapper;
+    @Qualifier("rediSearchObjectMapper")
+    private ObjectMapper rediSearchObjectMapper;
 
     @Value("${redis.search.defaultResultLimit:0x7fffffff}")
     protected Long defaultMaxResults;
@@ -79,7 +79,7 @@ public abstract class AbstractRediSearchClientAutoConfiguration implements RediS
 
     <T> RedisSerializer<T> createRedisSerializer(Class<T> clazz) {
 
-        return new CompressingJacksonSerializer<>(clazz, redisSearchObjectMapper);
+        return new CompressingJacksonSerializer<>(clazz, rediSearchObjectMapper);
     }
 
     @Override
