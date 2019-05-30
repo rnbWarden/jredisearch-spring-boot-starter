@@ -1,6 +1,5 @@
 package com.rnbwarden.redisearch.autoconfiguration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
 import com.redislabs.lettusearch.RediSearchCommands;
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
@@ -17,14 +16,8 @@ import static org.mockito.Mockito.when;
 public class MockLettuceConfiguration {
 
     @Bean
-    public ObjectMapper objectMapper() {
-
-        return mock(ObjectMapper.class);
-    }
-
-    @Bean
     @Primary
-    public com.redislabs.lettusearch.RediSearchClient rediSearchClient() {
+    public RediSearchClient rediSearchClient() {
 
         RediSearchClient rediSearchClient = mock(RediSearchClient.class);
         StatefulRediSearchConnection<String, String> statefulRediSearchConnection = mock(StatefulRediSearchConnection.class);

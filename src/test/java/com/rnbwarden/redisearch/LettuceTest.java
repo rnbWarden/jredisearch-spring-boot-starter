@@ -18,7 +18,7 @@ import java.util.List;
 import static org.assertj.core.util.Maps.newHashMap;
 import static org.junit.Assert.*;
 
-@Ignore // un-ignore to test with local redis w/ Search module
+//@Ignore // un-ignore to test with local redis w/ Search module
 public class LettuceTest {
 
     private LettuceRediSearchClient lettuceRediSearchClient;
@@ -57,7 +57,7 @@ public class LettuceTest {
         assertEquals(1, searchResults.getResults().size());
         assertNotNull(searchResults.getResults().get(0));
         List<StubEntity> resultEntities = lettuceRediSearchClient.deserialize(searchResults);
-        assertNotNull(resultEntities);
+        assertNotNull(resultEntities.get(0));
 
         try {
             lettuceRediSearchClient.dropIndex();

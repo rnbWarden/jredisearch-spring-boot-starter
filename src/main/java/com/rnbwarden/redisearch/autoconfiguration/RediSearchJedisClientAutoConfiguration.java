@@ -14,8 +14,6 @@ import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import redis.clients.jedis.Jedis;
 
-import static java.lang.String.format;
-
 @Configuration("RediSearchJedisClientAutoConfiguration")
 @ConditionalOnClass({GenericObjectPool.class, JedisConnection.class, Jedis.class, Client.class})
 @ComponentScan(basePackages = "com.rnbwarden.redisearch.autoconfiguration")

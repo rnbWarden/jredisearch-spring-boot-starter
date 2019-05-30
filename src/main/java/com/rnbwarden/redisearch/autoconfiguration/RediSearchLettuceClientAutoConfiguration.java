@@ -1,7 +1,6 @@
 package com.rnbwarden.redisearch.autoconfiguration;
 
 import com.redislabs.springredisearch.RediSearchConfiguration;
-import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.codec.ByteArrayCodec;
@@ -28,7 +27,7 @@ public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearch
     @SuppressWarnings("unchecked")
     void createRediSearchBeans(Class<?> clazz) {
 
-        RedisSerializer<?> redisSerializer = new CompressingJacksonSerializer<>(clazz, primaryObjectMapper);
+        RedisSerializer<?> redisSerializer = createRedisSerializer(clazz);
         RedisCodec redisCodec = new LettuceRedisCodec();
 
         LettuceRediSearchClient lettuceRediSearchClient = new LettuceRediSearchClient(clazz, rediSearchClient, redisCodec, redisSerializer, defaultMaxResults);

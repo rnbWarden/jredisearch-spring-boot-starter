@@ -1,7 +1,5 @@
 package com.rnbwarden.redisearch.autoconfiguration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rnbwarden.redisearch.autoconfiguration.JedisSearchConnectionFactory;
 import io.redisearch.client.Client;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,12 +11,6 @@ import static org.mockito.Mockito.when;
 
 @Configuration
 public class MockJedisConfiguration {
-
-    @Bean
-    public ObjectMapper objectMapper() {
-
-        return mock(ObjectMapper.class);
-    }
 
     @Bean
     public JedisSearchConnectionFactory jedisSearchConnectionFactory() {
