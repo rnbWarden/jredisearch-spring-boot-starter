@@ -27,7 +27,7 @@ For JEDIS
     compile 'org.springframework.data:spring-data-redis:2.2.0.M2'
     compile 'redis.clients:jedis:3.0.1'
     compile 'com.redislabs:jredisearch:0.25.0'
-    compile 'com.bsb.common:jredisearch-spring-boot-starter:1.0.26'
+    compile 'com.bsb.common:jredisearch-spring-boot-starter:2.1.6'
 ----
 
 for LETTUCE
@@ -35,7 +35,7 @@ for LETTUCE
     compile 'org.springframework.data:spring-data-redis:2.2.0.M2'
     compile 'com.redislabs:lettusearch:1.1.10'
     compile 'com.redislabs:spring-redisearch:1.1.2'
-    compile 'com.bsb.common:jredisearch-spring-boot-starter:1.0.26'
+    compile 'com.bsb.common:jredisearch-spring-boot-starter:2.1.6'
 ----
 
 
@@ -75,6 +75,11 @@ The easiest and most straightforward way of doing this is to include the followi
 @DependsOn("RediSearchAutoConfiguration")
 ----
 
+== Serialization
+The starter uses Jackson to serialize the RediSearch entities.
+By default it's assumed the application has a `com.fasterxml.jackson.databind.ObjectMapper` configured and uses this ObjectMapper.
+If one is not supplied by the application the starter will create a (default) one.
+If you wish to supply a specific bean for Redis serialization (ex: use a different ObjectMapper for the application and for redis serialization) you can supply one specifically for RediSearch by create a bean named `rediSearchObjectMapper`.
 
 == References
 
