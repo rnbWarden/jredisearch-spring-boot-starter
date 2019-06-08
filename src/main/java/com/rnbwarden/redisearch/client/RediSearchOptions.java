@@ -1,16 +1,19 @@
 package com.rnbwarden.redisearch.client;
 
+import com.rnbwarden.redisearch.entity.QueryField;
+import com.rnbwarden.redisearch.entity.SearchOperator;
 import com.rnbwarden.redisearch.entity.SearchableField;
 import lombok.Data;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+
+import static java.util.stream.Collectors.joining;
 
 @Data
 public class RediSearchOptions {
 
     public static Long defaultMaxValue = Long.MAX_VALUE;
-    private Map<SearchableField, String> fieldNameValues = new HashMap<>();
+    private List<QueryField> queryFields = new ArrayList<>();
 
     protected boolean noContent;
     protected boolean verbatim;
@@ -25,7 +28,16 @@ public class RediSearchOptions {
 
     public void addField(SearchableField field, String value) {
 
-        fieldNameValues.put(field, value);
+        queryFields.add(new QueryField(field, value));
     }
 
+    public void addField(SearchableField field, SearchOperator operator, String... values) {
+
+        queryFields.add(new QueryField(field, Arrays.asList(values), operator));
+    }
+
+    public void addField(SearchableField field, SearchOperator operator, Collection<String> values) {
+
+        queryFields.add(new QueryField(field, values, operator));
+    }
 }

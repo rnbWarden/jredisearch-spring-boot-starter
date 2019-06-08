@@ -5,9 +5,9 @@ import com.redislabs.lettusearch.search.*;
 import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.client.RediSearchOptions;
 import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.entity.QueryField;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
-import com.rnbwarden.redisearch.entity.SearchableField;
 import io.lettuce.core.RedisCommandExecutionException;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.support.ConnectionPoolSupport;
@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -135,10 +136,8 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     @Override
     protected SearchResults search(String queryString, RediSearchOptions options) {
 
-//        SearchResults searchResults = connection.sync().search(index, query.toString(), SearchOptions.builder().build());
-//        SearchOptions.builder().returnField(FIELD_NAME).returnField(FIELD_STYLE).build()
         try (StatefulRediSearchConnection<String, Object> connection = pool.borrowObject()) {
-            com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, buildSearchOptions(options));
+            com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, configureQueryOptions(options));
             logger.debug("found count {}", searchResults.getCount());
             return new LettuceSearchResults(keyPrefix, searchResults);
         } catch (Exception e) {
@@ -148,15 +147,15 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     private String buildQueryString(RediSearchOptions rediSearchOptions) {
 
-        return rediSearchOptions.getFieldNameValues().entrySet().stream()
-                .map(entry -> {
-                    SearchableField field = entry.getKey();
-                    return format("@%s:%s", field.getName(), field.getQuerySyntax(entry.getValue()));
-                })
-                .collect(joining(" ")); //space imply intersection - AND
+        List<QueryField> queryFields = rediSearchOptions.getQueryFields();
+        StringBuilder sb = new StringBuilder();
+        queryFields.forEach(queryField -> {
+            sb.append(format("@%s:%s", queryField.getName(), queryField.getQuerySyntax()));
+        });
+        return sb.toString();
     }
 
-    private SearchOptions buildSearchOptions(RediSearchOptions rediSearchOptions) {
+    private SearchOptions configureQueryOptions(RediSearchOptions rediSearchOptions) {
 
         SearchOptions.SearchOptionsBuilder builder = SearchOptions.builder();
         if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {

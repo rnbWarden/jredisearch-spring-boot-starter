@@ -5,6 +5,7 @@ import com.rnbwarden.redisearch.client.RediSearchOptions;
 import com.rnbwarden.redisearch.client.SearchResults;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
+import com.rnbwarden.redisearch.entity.SearchableField;
 import io.redisearch.Query;
 import io.redisearch.Schema;
 import io.redisearch.client.Client;
@@ -23,6 +24,7 @@ import java.util.function.Function;
 
 import static io.redisearch.querybuilder.QueryBuilder.intersect;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
 
 public class JedisRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, SearchableJedisField<E>> {
 
@@ -107,7 +109,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     private Query buildQuery(RediSearchOptions rediSearchOptions) {
 
         QueryNode node = intersect();
-        rediSearchOptions.getFieldNameValues().forEach((field, value) -> node.add(field.getName(), field.getQuerySyntax(value)));
+        rediSearchOptions.getQueryFields().forEach(queryField -> node.add(queryField.getName(), queryField.getQuerySyntax()));
         Query query = new Query(node.toString());
 
         configureQueryOptions(rediSearchOptions, query);

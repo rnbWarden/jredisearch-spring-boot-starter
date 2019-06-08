@@ -127,12 +127,13 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         return fields;
     }
 
-    protected SearchableField<E> getField(String name) {
+    @Override
+    public SearchableField<E> getField(String name) {
 
         return fields.stream()
                 .filter(f -> f.getName().equals(name))
                 .findAny()
-                .orElseThrow(() -> new IllegalArgumentException("invalid entity name: " + name));
+                .orElseThrow(() -> new IllegalArgumentException("Invalid field name: " + name));
     }
 
     protected Map<String, Object> serialize(E entity) {
