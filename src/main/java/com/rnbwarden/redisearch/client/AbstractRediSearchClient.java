@@ -10,8 +10,8 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.StopWatch;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -53,46 +53,30 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         fields.addAll(getSearchFieldsFromMethods());
     }
 
-    protected abstract Map<RediSearchFieldType, BiFunction<String, Function<E, String>, T>> getFieldStrategy();
-
     protected abstract void checkAndCreateIndex();
 
+    protected abstract T createSearchableField(RediSearchFieldType type,
+                                               String name,
+                                               boolean sortable,
+                                               Function<E, String> serializationFunction);
     private List<T> getSearchableFieldsFromFields() {
 
         return FieldUtils.getFieldsListWithAnnotation(clazz, RediSearchField.class).stream()
                 .map(field -> stream(field.getAnnotations())
                         .filter(annotation -> annotation instanceof RediSearchField)
                         .map(RediSearchField.class::cast)
-                        .map(annotation -> {
-                            RediSearchFieldType type = annotation.type();
-                            String name = annotation.name();
-                            return getFieldStrategy().get(type).apply(name, e -> getFieldValue(field, e));
-                        })
+                        .map(annotation -> createSearchableField(field, annotation))
                         .collect(toList()))
                 .flatMap(List::stream)
                 .collect(toList());
     }
 
-    private List<T> getSearchFieldsFromMethods() {
+    private T createSearchableField(Field field, RediSearchField annotation) {
 
-        return MethodUtils.getMethodsListWithAnnotation(clazz, RediSearchField.class).stream()
-                .map(method -> stream(method.getAnnotations())
-                        .filter(annotation -> annotation instanceof RediSearchField)
-                        .map(RediSearchField.class::cast)
-                        .map(annotation -> getFieldStrategy().get(annotation.type()).apply(annotation.name(), e -> {
-                            try {
-                                Object o = method.invoke(e, (Object[]) null);
-                                return getSerializedObjectValue(o);
-                            } catch (Exception ex) {
-                                throw new RuntimeException(String.format("cannot invoke method:%s on %s", method.getName(), e.getClass()), ex);
-                            }
-                        }))
-                        .collect(toList()))
-                .flatMap(List::stream)
-                .collect(toList());
+        return createSearchableField(annotation.type(), annotation.name(), annotation.sortable(), e -> getFieldValue(field, e));
     }
 
-    private String getFieldValue(Field f, Object obj) {
+    private String getFieldValue(Field f, E obj) {
 
         try {
             boolean accessible = f.isAccessible();
@@ -104,6 +88,33 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
             return getSerializedObjectValue(o);
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(format("Unable to get RediSearch annotated entity value for entity: %s of class: %s", f.getName(), obj.getClass()), e);
+        }
+    }
+
+    private List<T> getSearchFieldsFromMethods() {
+
+        return MethodUtils.getMethodsListWithAnnotation(clazz, RediSearchField.class).stream()
+                .map(method -> stream(method.getAnnotations())
+                        .filter(annotation -> annotation instanceof RediSearchField)
+                        .map(RediSearchField.class::cast)
+                        .map(annotation -> createSearchableField(method, annotation))
+                        .collect(toList()))
+                .flatMap(List::stream)
+                .collect(toList());
+    }
+
+    private T createSearchableField(Method method, RediSearchField annotation) {
+
+        return createSearchableField(annotation.type(), annotation.name(), annotation.sortable(), e -> getFieldValue(method, e));
+    }
+
+    private String getFieldValue(Method method, E obj) {
+
+        try {
+            Object o = method.invoke(obj, (Object[]) null);
+            return getSerializedObjectValue(o);
+        } catch (Exception ex) {
+            throw new RuntimeException(String.format("cannot invoke method:%s on %s", method.getName(), obj.getClass()), ex);
         }
     }
 

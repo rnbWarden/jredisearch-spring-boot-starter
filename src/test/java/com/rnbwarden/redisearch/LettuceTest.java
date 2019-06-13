@@ -21,13 +21,15 @@ import java.util.List;
 import static com.rnbwarden.redisearch.entity.StubEntity.COLUMN1;
 import static com.rnbwarden.redisearch.entity.StubEntity.LIST_COLUMN;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.util.Maps.newHashMap;
 import static org.junit.Assert.*;
 
 @Ignore // un-ignore to test with local redis w/ Search module
 public class LettuceTest {
 
-    private LettuceRediSearchClient lettuceRediSearchClient;
+    private LettuceRediSearchClient<StubEntity> lettuceRediSearchClient;
 
     @Before
     @SuppressWarnings("unchecked")
@@ -53,7 +55,6 @@ public class LettuceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test() {
 
         assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
@@ -80,5 +81,26 @@ public class LettuceTest {
         options = new RediSearchOptions();
         options.addField(lettuceRediSearchClient.getField(LIST_COLUMN), SearchOperator.UNION, "listValue2", "listValue3");
         assertEquals(2, lettuceRediSearchClient.find(options).getResults().size());
+    }
+
+    @Test
+    public void testPaging() {
+
+        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+
+        StubEntity stubEntity1 = new StubEntity("hijklmnop", "value1", emptyList());
+        StubEntity stubEntity2 = new StubEntity("abcdefg", "value1", emptyList());
+        lettuceRediSearchClient.save(stubEntity1);
+        lettuceRediSearchClient.save(stubEntity2);
+
+        assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
+
+        RediSearchOptions options = new RediSearchOptions();
+        options.setSortBy(COLUMN1);
+        SearchResults searchResults = lettuceRediSearchClient.findByFields(singletonMap(COLUMN1, "value1"), options);
+
+        List<StubEntity> stubEntities = lettuceRediSearchClient.deserialize(searchResults);
+        assertEquals(stubEntity2.getColumn1(), stubEntities.get(0).getColumn1());
+        assertEquals(stubEntity1.getColumn1(), stubEntities.get(0).getColumn1());
     }
 }

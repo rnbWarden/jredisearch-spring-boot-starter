@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Data
@@ -16,7 +15,7 @@ public class StubEntity implements RedisSearchableEntity {
     public static final String COLUMN1 = "column1";
     public static final String LIST_COLUMN = "listColumn";
     private String key;
-    @RediSearchField(name = COLUMN1)
+    @RediSearchField(name = COLUMN1, sortable = true)
     String column1;
     @RediSearchField(name = LIST_COLUMN)
     private List<String> multiValuedField;

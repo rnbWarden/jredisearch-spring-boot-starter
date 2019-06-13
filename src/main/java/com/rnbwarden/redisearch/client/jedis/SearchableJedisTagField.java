@@ -8,8 +8,9 @@ import java.util.function.Function;
 public class SearchableJedisTagField<E> extends SearchableJedisField<E> implements SearchableTagField {
 
     public SearchableJedisTagField(String name,
+                                   boolean sortable,
                                    Function<E, String> serializeFunction) {
 
-        super(name, serializeFunction, QUERY_SYNTAX, new Schema.TagField(name));
+        super(name, serializeFunction, QUERY_SYNTAX, new Schema.TagField(name)); //WARDEN: implement SORTABLE
     }
 }

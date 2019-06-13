@@ -23,6 +23,7 @@ public class RediSearchOptions {
     protected boolean withSortKeys;
     protected String language;
     protected String sortBy;
+    protected boolean sortAscending = true;
     protected Long offset;
     protected Long limit;
 

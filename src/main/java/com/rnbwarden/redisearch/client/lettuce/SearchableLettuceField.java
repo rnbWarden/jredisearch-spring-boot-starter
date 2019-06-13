@@ -14,7 +14,7 @@ public abstract class SearchableLettuceField<E> extends SearchableField<E> {
                            String querySyntax,
                            Field field) {
 
-        super(name, serializeFunction, querySyntax);
+        super(name, serializeFunction, querySyntax, field.isSortable());
         this.field = field;
     }
 

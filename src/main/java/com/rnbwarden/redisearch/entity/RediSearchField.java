@@ -12,4 +12,6 @@ public @interface RediSearchField {
 
     String name();
     RediSearchFieldType type() default RediSearchFieldType.TEXT;
+
+    boolean sortable() default false;
 }

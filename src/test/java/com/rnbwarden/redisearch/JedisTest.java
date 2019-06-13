@@ -23,13 +23,15 @@ import java.util.List;
 import static com.rnbwarden.redisearch.entity.StubEntity.COLUMN1;
 import static com.rnbwarden.redisearch.entity.StubEntity.LIST_COLUMN;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.util.Maps.newHashMap;
 import static org.junit.Assert.*;
 
 @Ignore // un-ignore to test with local redis w/ Search module
 public class JedisTest {
 
-    private JedisRediSearchClient jedisRediSearchClient;
+    private JedisRediSearchClient<StubEntity> jedisRediSearchClient;
 
     @Before
     @SuppressWarnings("unchecked")
@@ -77,5 +79,26 @@ public class JedisTest {
         options = new RediSearchOptions();
         options.addField(jedisRediSearchClient.getField(LIST_COLUMN), SearchOperator.UNION, "listValue2", "listValue3");
         assertEquals(2, jedisRediSearchClient.find(options).getResults().size());
+    }
+
+    @Test
+    public void testPaging() {
+
+        assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
+
+        StubEntity stubEntity1 = new StubEntity("hijklmnop", "value1", emptyList());
+        StubEntity stubEntity2 = new StubEntity("abcdefg", "value1", emptyList());
+        jedisRediSearchClient.save(stubEntity1);
+        jedisRediSearchClient.save(stubEntity2);
+
+        assertEquals(2, (long) jedisRediSearchClient.getKeyCount());
+
+        RediSearchOptions options = new RediSearchOptions();
+        options.setSortBy(COLUMN1);
+        SearchResults searchResults = jedisRediSearchClient.findByFields(singletonMap(COLUMN1, "value1"), options);
+
+        List<StubEntity> stubEntities = jedisRediSearchClient.deserialize(searchResults);
+        assertEquals(stubEntity2.getColumn1(), stubEntities.get(0).getColumn1());
+        assertEquals(stubEntity1.getColumn1(), stubEntities.get(0).getColumn1());
     }
 }

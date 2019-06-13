@@ -3,6 +3,9 @@ package com.rnbwarden.redisearch.client.jedis;
 import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.client.RediSearchOptions;
 import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.client.lettuce.SearchableLettuceField;
+import com.rnbwarden.redisearch.client.lettuce.SearchableLettuceTagField;
+import com.rnbwarden.redisearch.client.lettuce.SearchableLettuceTextField;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import com.rnbwarden.redisearch.entity.SearchableField;
@@ -15,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import redis.clients.jedis.exceptions.JedisDataException;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -23,6 +27,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static io.redisearch.querybuilder.QueryBuilder.intersect;
+import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
 
@@ -41,13 +46,19 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         checkAndCreateIndex();
     }
 
-    @Override
-    protected Map<RediSearchFieldType, BiFunction<String, Function<E, String>, SearchableJedisField<E>>> getFieldStrategy() {
+    @SuppressWarnings("unchecked")
+    protected SearchableJedisField<E> createSearchableField(RediSearchFieldType type,
+                                                            String name,
+                                                            boolean sortable,
+                                                            Function<E, String> serializationFunction) {
 
-        Map<RediSearchFieldType, BiFunction<String, Function<E, String>, SearchableJedisField<E>>> fieldStrategy = new HashMap<>();
-        fieldStrategy.put(RediSearchFieldType.TEXT, SearchableJedisTextField::new);
-        fieldStrategy.put(RediSearchFieldType.TAG, SearchableJedisTagField::new);
-        return fieldStrategy;
+        if (type == RediSearchFieldType.TEXT) {
+            return new SearchableJedisTextField(name, sortable, serializationFunction);
+        }
+        if (type == RediSearchFieldType.TAG) {
+            return new SearchableJedisTagField(name, sortable, serializationFunction);
+        }
+        throw new IllegalArgumentException(format("field type '%s' is not supported", type));
     }
 
     @Override
@@ -125,6 +136,10 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         }
         if (rediSearchOptions.isNoContent()) {
             query.setNoContent();
+        }
+        String sortBy = rediSearchOptions.getSortBy();
+        if (sortBy != null) {
+            query.setSortBy(sortBy, rediSearchOptions.isSortAscending());
         }
     }
 

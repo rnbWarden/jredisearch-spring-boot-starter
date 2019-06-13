@@ -2,6 +2,7 @@ package com.rnbwarden.redisearch.client.lettuce;
 
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
 import com.redislabs.lettusearch.search.*;
+import com.redislabs.lettusearch.search.field.FieldOptions;
 import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.client.RediSearchOptions;
 import com.rnbwarden.redisearch.client.SearchResults;
@@ -17,14 +18,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static com.redislabs.lettusearch.search.SortBy.Direction.Ascending;
+import static com.redislabs.lettusearch.search.SortBy.Direction.Descending;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
@@ -48,21 +49,13 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     }
 
     @Override
-    protected Map<RediSearchFieldType, BiFunction<String, Function<E, String>, SearchableLettuceField<E>>> getFieldStrategy() {
-
-        Map<RediSearchFieldType, BiFunction<String, Function<E, String>, SearchableLettuceField<E>>> fieldStrategy = new HashMap<>();
-        fieldStrategy.put(RediSearchFieldType.TEXT, SearchableLettuceTextField::new);
-        fieldStrategy.put(RediSearchFieldType.TAG, SearchableLettuceTagField::new);
-        return fieldStrategy;
-    }
-
-    @Override
     protected void checkAndCreateIndex() {
 
         StatefulRediSearchConnection<String, String> uncompressedConnection = null;
         try {
             uncompressedConnection = rediSearchClient.connect();
             uncompressedConnection.sync().indexInfo(index);
+            alterSortableFields(uncompressedConnection);
         } catch (RedisCommandExecutionException ex) {
             if (uncompressedConnection == null) {
                 throw ex;
@@ -77,6 +70,18 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         }
     }
 
+    /**
+     * This is a patch for any existing indexes created before search capability was added to the starter
+     */
+    private void alterSortableFields(StatefulRediSearchConnection<String, String> connection) {
+
+        getFields().stream()
+                .map(SearchableLettuceField::getField)
+                .filter(com.redislabs.lettusearch.search.field.Field::isSortable)
+                .map(com.redislabs.lettusearch.search.field.Field::getName)
+                .forEach(fieldName -> connection.sync().alter(index, fieldName, FieldOptions.builder().sortable(true).build()));
+    }
+
     private Schema createSchema() {
 
         Schema.SchemaBuilder builder = Schema.builder();
@@ -84,6 +89,22 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
                 .map(SearchableLettuceField::getField)
                 .forEach(builder::field);
         return builder.build();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected SearchableLettuceField<E> createSearchableField(RediSearchFieldType type,
+                                                              String name,
+                                                              boolean sortable,
+                                                              Function<E, String> serializationFunction) {
+
+        if (type == RediSearchFieldType.TEXT) {
+            return new SearchableLettuceTextField(name, sortable, serializationFunction);
+        }
+        if (type == RediSearchFieldType.TAG) {
+            return new SearchableLettuceTagField(name, sortable, serializationFunction);
+        }
+        throw new IllegalArgumentException(format("field type '%s' is not supported", type));
     }
 
     @Override
@@ -158,6 +179,10 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     private SearchOptions configureQueryOptions(RediSearchOptions rediSearchOptions) {
 
         SearchOptions.SearchOptionsBuilder builder = SearchOptions.builder();
+        String sortBy = rediSearchOptions.getSortBy();
+        if (sortBy != null) {
+            builder.sortBy(SortBy.builder().field(sortBy).direction(rediSearchOptions.isSortAscending() ? Ascending : Descending).build());
+        }
         if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {
             builder.limit(Limit.builder().num(rediSearchOptions.getLimit()).offset(rediSearchOptions.getOffset()).build());
         }

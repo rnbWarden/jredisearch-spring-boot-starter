@@ -7,14 +7,17 @@ public abstract class SearchableField<E> {
     protected final String name;
     protected final Function<E, String> serializeFunction;
     protected final String querySyntax;
+    protected final boolean isSortable;
 
     public SearchableField(String name,
                            Function<E, String> serializeFunction,
-                           String querySyntax) {
+                           String querySyntax,
+                           boolean isSortable) {
 
         this.name = name;
         this.serializeFunction = serializeFunction;
         this.querySyntax = querySyntax;
+        this.isSortable = isSortable;
     }
 
     public String getName() {
