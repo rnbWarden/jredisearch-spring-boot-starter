@@ -5,12 +5,13 @@ import com.rnbwarden.redisearch.entity.SearchOperator;
 import com.rnbwarden.redisearch.entity.SearchableField;
 import lombok.Data;
 
-import java.util.*;
-
-import static java.util.stream.Collectors.joining;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 @Data
-public class RediSearchOptions {
+public class SearchContext {
 
     public static Long defaultMaxValue = Long.MAX_VALUE;
     private List<QueryField> queryFields = new ArrayList<>();
@@ -24,8 +25,6 @@ public class RediSearchOptions {
     protected String language;
     protected String sortBy;
     protected boolean sortAscending = true;
-    protected Long offset;
-    protected Long limit;
 
     public void addField(SearchableField field, String value) {
 

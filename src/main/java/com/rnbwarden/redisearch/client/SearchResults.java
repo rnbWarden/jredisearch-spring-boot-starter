@@ -1,8 +1,10 @@
 package com.rnbwarden.redisearch.client;
 
+import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
+
 import java.util.List;
 
-public interface SearchResults {
+public interface SearchResults<E extends RedisSearchableEntity> {
 
     Long getTotalResults();
 

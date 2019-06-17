@@ -1,16 +1,11 @@
 package com.rnbwarden.redisearch.client.jedis;
 
-import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
-import com.rnbwarden.redisearch.client.RediSearchOptions;
-import com.rnbwarden.redisearch.client.SearchResults;
-import com.rnbwarden.redisearch.client.lettuce.SearchableLettuceField;
-import com.rnbwarden.redisearch.client.lettuce.SearchableLettuceTagField;
-import com.rnbwarden.redisearch.client.lettuce.SearchableLettuceTextField;
+import com.rnbwarden.redisearch.client.*;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
-import com.rnbwarden.redisearch.entity.SearchableField;
 import io.redisearch.Query;
 import io.redisearch.Schema;
+import io.redisearch.SearchResult;
 import io.redisearch.client.Client;
 import io.redisearch.querybuilder.QueryNode;
 import org.slf4j.Logger;
@@ -18,18 +13,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import redis.clients.jedis.exceptions.JedisDataException;
 
-import java.lang.reflect.Field;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static io.redisearch.querybuilder.QueryBuilder.intersect;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.joining;
 
 public class JedisRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, SearchableJedisField<E>> {
 
@@ -103,8 +94,13 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     @Override
     public Optional<E> findByKey(String key) {
 
+        return findByQualifiedKey(getQualifiedKey(key));
+    }
+
+    Optional<E> findByQualifiedKey(String key) {
+
         return performTimedOperation("findByKey",
-                () -> ofNullable(jRediSearchClient.getDocument(getQualifiedKey(key), false))
+                () -> ofNullable(jRediSearchClient.getDocument(key, false))
                         .map(d -> d.get(SERIALIZED_DOCUMENT))
                         .map(b -> (byte[]) b)
                         .map(redisSerializer::deserialize)
@@ -112,50 +108,89 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
-    public SearchResults find(RediSearchOptions options) {
+    public SearchResults find(SearchContext context) {
 
-        return performTimedOperation("search", () -> search(buildQuery(options)));
+        return performTimedOperation("search", () -> search(buildQuery(context)));
     }
 
-    private Query buildQuery(RediSearchOptions rediSearchOptions) {
+    private Query buildQuery(SearchContext searchContext) {
 
         QueryNode node = intersect();
-        rediSearchOptions.getQueryFields().forEach(queryField -> node.add(queryField.getName(), queryField.getQuerySyntax()));
+        searchContext.getQueryFields().forEach(queryField -> node.add(queryField.getName(), queryField.getQuerySyntax()));
         Query query = new Query(node.toString());
 
-        configureQueryOptions(rediSearchOptions, query);
+        configureQueryOptions(searchContext, query);
         return query;
     }
 
-    private void configureQueryOptions(RediSearchOptions rediSearchOptions, Query query) {
+    private void configureQueryOptions(SearchContext searchContext, Query query) {
 
-        if (rediSearchOptions.getOffset() != null && rediSearchOptions.getLimit() != null) {
-            query.limit(rediSearchOptions.getOffset().intValue(), rediSearchOptions.getLimit().intValue());
-        } else {
-            query.limit(0, 1000000);
-        }
-        if (rediSearchOptions.isNoContent()) {
+        if (searchContext.isNoContent()) {
             query.setNoContent();
         }
-        String sortBy = rediSearchOptions.getSortBy();
-        if (sortBy != null) {
-            query.setSortBy(sortBy, rediSearchOptions.isSortAscending());
-        }
+        ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> query.setSortBy(sortBy, searchContext.isSortAscending()));
     }
 
     @Override
-    protected SearchResults search(String queryString, RediSearchOptions rediSearchOptions) {
+    protected SearchResults<E> search(String queryString, SearchContext searchContext) {
 
         Query query = new Query(queryString);
-        configureQueryOptions(rediSearchOptions, query);
+        configureQueryOptions(searchContext, query);
         return search(query);
     }
 
-    private SearchResults search(Query query) {
+    @SuppressWarnings("unchecked")
+    private SearchResults<E> search(Query query) {
 
-        io.redisearch.SearchResult searchResult = jRediSearchClient.search(query, false);
-        logger.debug("found {} totalResults - count {}", searchResult.totalResults, searchResult.docs.stream().filter(Objects::nonNull).count());
-
-        return new JedisSearchResults(keyPrefix, searchResult);
+        return new JedisSearchResults(keyPrefix, performJedisSearch(query));
     }
+
+    private SearchResult performJedisSearch(Query query) {
+
+        SearchResult searchResult = jRediSearchClient.search(query, false);
+        logger.debug("found {} totalResults - count {}", searchResult.totalResults, searchResult.docs.stream().filter(Objects::nonNull).count());
+        return searchResult;
+    }
+
+    @Override
+    public PageableSearchResults<E> search(PagingSearchContext pageableContent) {
+
+        return performTimedOperation("search", () -> performPagedJedisSearch(buildQuery(pageableContent)));
+    }
+
+    @Override
+    protected PageableSearchResults<E> search(String queryString, PagingSearchContext searchContext) {
+
+        assert (searchContext != null);
+        assert (searchContext.getOffset() != null);
+        assert (searchContext.getLimit() != null);
+
+        //aggregateSearch(queryString, searchContext);
+
+        return performTimedOperation("search", () -> {
+            Query query = new Query(queryString);
+            configureQueryOptions(searchContext, query);
+            return performPagedJedisSearch(query);
+        });
+    }
+
+    private JedisPagingSearchResults<E> performPagedJedisSearch(Query query) {
+
+        return new JedisPagingSearchResults<>(performJedisSearch(query), this);
+    }
+
+/**
+ private void aggregateSearch(String queryString, PagingSearchContext searchContext) {
+
+ AggregationRequest aggregationRequest = new AggregationRequest(queryString)
+ .limit(searchContext.getLimit().intValue());
+
+ ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> {
+ SortedField sortedField = new SortedField(sortBy, searchContext.isSortAscending() ? SortedField.SortOrder.ASC : SortedField.SortOrder.DESC);
+ aggregationRequest.sortBy(sortedField);
+ });
+
+ AggregationResult aggregationResult = jRediSearchClient.aggregate(aggregationRequest);
+ }
+ */
 }

@@ -1,16 +1,11 @@
 package com.rnbwarden.redisearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redislabs.lettusearch.RediSearchClient;
-import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
-import com.rnbwarden.redisearch.client.RediSearchOptions;
+import com.rnbwarden.redisearch.client.SearchContext;
 import com.rnbwarden.redisearch.client.SearchResults;
 import com.rnbwarden.redisearch.client.jedis.JedisRediSearchClient;
-import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import com.rnbwarden.redisearch.entity.SearchOperator;
 import com.rnbwarden.redisearch.entity.StubEntity;
-import io.lettuce.core.RedisURI;
-import io.lettuce.core.codec.RedisCodec;
 import io.redisearch.client.Client;
 import org.junit.After;
 import org.junit.Before;
@@ -72,13 +67,13 @@ public class JedisTest {
         List<StubEntity> resultEntities = jedisRediSearchClient.deserialize(searchResults);
         assertNotNull(resultEntities.get(0));
 
-        RediSearchOptions options = new RediSearchOptions();
-        options.addField(jedisRediSearchClient.getField(LIST_COLUMN), SearchOperator.INTERSECTION, "listValue2", "listValue3");
-        assertEquals(1, jedisRediSearchClient.find(options).getResults().size());
+        SearchContext searchContext = new SearchContext();
+        searchContext.addField(jedisRediSearchClient.getField(LIST_COLUMN), SearchOperator.INTERSECTION, "listValue2", "listValue3");
+        assertEquals(1, jedisRediSearchClient.find(searchContext).getResults().size());
 
-        options = new RediSearchOptions();
-        options.addField(jedisRediSearchClient.getField(LIST_COLUMN), SearchOperator.UNION, "listValue2", "listValue3");
-        assertEquals(2, jedisRediSearchClient.find(options).getResults().size());
+        searchContext = new SearchContext();
+        searchContext.addField(jedisRediSearchClient.getField(LIST_COLUMN), SearchOperator.UNION, "listValue2", "listValue3");
+        assertEquals(2, jedisRediSearchClient.find(searchContext).getResults().size());
     }
 
     @Test
@@ -93,9 +88,9 @@ public class JedisTest {
 
         assertEquals(2, (long) jedisRediSearchClient.getKeyCount());
 
-        RediSearchOptions options = new RediSearchOptions();
-        options.setSortBy(COLUMN1);
-        SearchResults searchResults = jedisRediSearchClient.findByFields(singletonMap(COLUMN1, "value1"), options);
+        SearchContext searchContext = new SearchContext();
+        searchContext.setSortBy(COLUMN1);
+        SearchResults searchResults = jedisRediSearchClient.findByFields(singletonMap(COLUMN1, "value1"), searchContext);
 
         List<StubEntity> stubEntities = jedisRediSearchClient.deserialize(searchResults);
         assertEquals(stubEntity2.getColumn1(), stubEntities.get(0).getColumn1());

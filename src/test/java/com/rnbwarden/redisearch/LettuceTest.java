@@ -3,7 +3,7 @@ package com.rnbwarden.redisearch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
-import com.rnbwarden.redisearch.client.RediSearchOptions;
+import com.rnbwarden.redisearch.client.SearchContext;
 import com.rnbwarden.redisearch.client.SearchResults;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import com.rnbwarden.redisearch.entity.SearchOperator;
@@ -12,7 +12,6 @@ import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
@@ -26,7 +25,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.util.Maps.newHashMap;
 import static org.junit.Assert.*;
 
-@Ignore // un-ignore to test with local redis w/ Search module
+//@Ignore // un-ignore to test with local redis w/ Search module
 public class LettuceTest {
 
     private LettuceRediSearchClient<StubEntity> lettuceRediSearchClient;
@@ -74,13 +73,13 @@ public class LettuceTest {
         List<StubEntity> resultEntities = lettuceRediSearchClient.deserialize(searchResults);
         assertNotNull(resultEntities.get(0));
 
-        RediSearchOptions options = new RediSearchOptions();
-        options.addField(lettuceRediSearchClient.getField(LIST_COLUMN), SearchOperator.INTERSECTION, "listValue2", "listValue3");
-        assertEquals(1, lettuceRediSearchClient.find(options).getResults().size());
+        SearchContext searchContext = new SearchContext();
+        searchContext.addField(lettuceRediSearchClient.getField(LIST_COLUMN), SearchOperator.INTERSECTION, "listValue2", "listValue3");
+        assertEquals(1, lettuceRediSearchClient.find(searchContext).getResults().size());
 
-        options = new RediSearchOptions();
-        options.addField(lettuceRediSearchClient.getField(LIST_COLUMN), SearchOperator.UNION, "listValue2", "listValue3");
-        assertEquals(2, lettuceRediSearchClient.find(options).getResults().size());
+        searchContext = new SearchContext();
+        searchContext.addField(lettuceRediSearchClient.getField(LIST_COLUMN), SearchOperator.UNION, "listValue2", "listValue3");
+        assertEquals(2, lettuceRediSearchClient.find(searchContext).getResults().size());
     }
 
     @Test
@@ -95,9 +94,9 @@ public class LettuceTest {
 
         assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
 
-        RediSearchOptions options = new RediSearchOptions();
-        options.setSortBy(COLUMN1);
-        SearchResults searchResults = lettuceRediSearchClient.findByFields(singletonMap(COLUMN1, "value1"), options);
+        SearchContext searchContext = new SearchContext();
+        searchContext.setSortBy(COLUMN1);
+        SearchResults searchResults = lettuceRediSearchClient.findByFields(singletonMap(COLUMN1, "value1"), searchContext);
 
         List<StubEntity> stubEntities = lettuceRediSearchClient.deserialize(searchResults);
         assertEquals(stubEntity2.getColumn1(), stubEntities.get(0).getColumn1());

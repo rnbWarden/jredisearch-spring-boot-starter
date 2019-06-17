@@ -6,7 +6,6 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
-import org.springframework.lang.Nullable;
 import org.springframework.util.StopWatch;
 
 import java.lang.reflect.Field;
@@ -59,6 +58,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                                                String name,
                                                boolean sortable,
                                                Function<E, String> serializationFunction);
+
     private List<T> getSearchableFieldsFromFields() {
 
         return FieldUtils.getFieldsListWithAnnotation(clazz, RediSearchField.class).stream()
@@ -174,7 +174,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     }
 
     @Override
-    public List<E> deserialize(SearchResults searchResults) {
+    public List<E> deserialize(SearchResults<E> searchResults) {
 
         return ofNullable(searchResults)
                 .map(SearchResults::getResults)
@@ -213,38 +213,27 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     }
 
     @Override
-    public SearchResults findAll(Integer offset,
-                                 Integer limit,
-                                 boolean includeContent) {
+    public SearchResults<E> findByFields(Map<String, String> fieldNameValues,
+                                         SearchContext searchContext) {
+
+        fieldNameValues.forEach((name, value) -> searchContext.addField(getField(name), value));
+        return find(searchContext);
+    }
+
+    @Override
+    public PageableSearchResults<E> findAll(Integer offset,
+                                            Integer limit,
+                                            boolean includeContent) {
 
         offset = ofNullable(offset).orElse(0);
         limit = ofNullable(limit).orElse(defaultMaxResults.intValue());
 
-        RediSearchOptions options = new RediSearchOptions();
-        options.setLimit(Long.valueOf(limit));
-        options.setOffset(Long.valueOf(offset));
-        options.setNoContent(!includeContent);
+        PagingSearchContext context = new PagingSearchContext();
+        context.setLimit(Long.valueOf(limit));
+        context.setOffset(Long.valueOf(offset));
+        context.setNoContent(!includeContent);
 
-        return performTimedOperation("findAll", () -> search(ALL_QUERY, options));
-    }
-
-    @Override
-    public SearchResults findByFields(Map<String, String> fieldNameValues,
-                                      @Nullable Long offset,
-                                      @Nullable Long limit) {
-
-        RediSearchOptions options = new RediSearchOptions();
-        options.setLimit(limit);
-        options.setOffset(offset);
-        return findByFields(fieldNameValues, options);
-    }
-
-    @Override
-    public SearchResults findByFields(Map<String, String> fieldNameValues,
-                                      RediSearchOptions options) {
-
-        fieldNameValues.forEach((name, value) -> options.addField(getField(name), value));
-        return find(options);
+        return performTimedOperation("findAll", () -> search(ALL_QUERY, context));
     }
 
     protected String getQualifiedKey(String key) {
@@ -252,5 +241,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         return keyPrefix + key;
     }
 
-    protected abstract SearchResults search(String queryString, RediSearchOptions searchOptions);
+    protected abstract com.rnbwarden.redisearch.client.SearchResults<E> search(String queryString, SearchContext searchContext);
+
+    protected abstract PageableSearchResults<E> search(String queryString, PagingSearchContext searchContext);
 }

@@ -2,6 +2,7 @@ package com.rnbwarden.redisearch.client.jedis;
 
 import com.rnbwarden.redisearch.client.SearchResult;
 import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import io.redisearch.Document;
 
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.Objects;
 
 import static java.util.stream.Collectors.toList;
 
-public class JedisSearchResults implements SearchResults {
+public class JedisSearchResults<E extends RedisSearchableEntity> implements SearchResults<E> {
 
     private final io.redisearch.SearchResult delegate;
     private final String keyPrefix;

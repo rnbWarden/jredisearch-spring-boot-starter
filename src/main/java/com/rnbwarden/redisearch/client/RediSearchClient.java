@@ -19,15 +19,20 @@ public interface RediSearchClient<E extends RedisSearchableEntity> {
 
     SearchableField<E> getField(String name);
 
-    SearchResults findAll(@NonNull Integer offset, @NonNull Integer limit, @NonNull boolean includeContent);
     Optional<E> findByKey(String key);
-    default SearchResults findByFields(Map<String, String> fieldNameValues) {
 
-        return findByFields(fieldNameValues, null, null);
+    default SearchResults<E> findByFields(Map<String, String> fieldNameValues) {
+
+        return findByFields(fieldNameValues, new SearchContext());
     }
-    SearchResults findByFields(Map<String, String> fieldNameValues, Long offset, Long limit);
-    SearchResults findByFields(Map<String, String> fieldNameValues, RediSearchOptions options);
-    SearchResults find(RediSearchOptions options);
 
-    List<E> deserialize(SearchResults searchResults);
+    SearchResults<E> findByFields(Map<String, String> fieldNameValues, SearchContext searchContext);
+
+    SearchResults<E> find(SearchContext searchContext);
+
+    PageableSearchResults<E> findAll(@NonNull Integer offset, @NonNull Integer limit, @NonNull boolean includeContent);
+
+    PageableSearchResults<E> search(PagingSearchContext pageableContent);
+
+    List<E> deserialize(SearchResults<E> searchResults);
 }

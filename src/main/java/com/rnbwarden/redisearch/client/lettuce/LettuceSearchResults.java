@@ -2,13 +2,14 @@ package com.rnbwarden.redisearch.client.lettuce;
 
 import com.rnbwarden.redisearch.client.SearchResult;
 import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 
 import java.util.List;
 import java.util.Objects;
 
 import static java.util.stream.Collectors.toList;
 
-public class LettuceSearchResults implements SearchResults {
+public class LettuceSearchResults<E extends RedisSearchableEntity> implements SearchResults<E> {
 
     private final com.redislabs.lettusearch.search.SearchResults<String, Object> delegate;
     private final String keyPrefix;
@@ -30,11 +31,11 @@ public class LettuceSearchResults implements SearchResults {
 
         return delegate.getResults().stream()
                 .filter(Objects::nonNull)
-                .map(this::createSeachResult)
+                .map(this::createSearchResult)
                 .collect(toList());
     }
 
-    private LettuceSearchResult<String, Object> createSeachResult(com.redislabs.lettusearch.search.SearchResult<String, Object> searchResult) {
+    private LettuceSearchResult<String, Object> createSearchResult(com.redislabs.lettusearch.search.SearchResult<String, Object> searchResult) {
 
         return new LettuceSearchResult<>(keyPrefix, searchResult);
     }
