@@ -12,6 +12,7 @@ import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
@@ -25,7 +26,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.util.Maps.newHashMap;
 import static org.junit.Assert.*;
 
-//@Ignore // un-ignore to test with local redis w/ Search module
+@Ignore // un-ignore to test with local redis w/ Search module
 public class LettuceTest {
 
     private LettuceRediSearchClient<StubEntity> lettuceRediSearchClient;
