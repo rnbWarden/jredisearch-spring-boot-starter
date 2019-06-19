@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisSentinelPool;
 
+import java.util.Optional;
 import java.util.Set;
 
 import static java.lang.String.format;
@@ -31,20 +32,14 @@ public class JedisSearchConnectionFactory {
 
     private JedisSentinelPool getJedisSentinelPool(RedisSentinelConfiguration sentinelConfiguration) {
 
-        if (jedisSentinelPool != null) {
-            return jedisSentinelPool;
+        if (jedisSentinelPool == null) {
+            String master = getMaster(sentinelConfiguration);
+            Set<String> sentinels = getSentinels(sentinelConfiguration);
+            int timeout = jedisConnectionFactory.getTimeout();
+            int poolSize = getPoolSize();
+            String password = jedisConnectionFactory.getPassword();
+            jedisSentinelPool = new JedisSentinelPool(master, sentinels, initPoolConfig(poolSize), timeout, password);
         }
-        String master = getMaster(sentinelConfiguration);
-
-        Set<String> sentinels = getSentinels(sentinelConfiguration);
-
-        int timeout = jedisConnectionFactory.getTimeout();
-
-        int poolSize = getPoolSize();
-
-        String password = jedisConnectionFactory.getPassword();
-
-        jedisSentinelPool = new JedisSentinelPool(master, sentinels, initPoolConfig(poolSize), timeout, password);
         return jedisSentinelPool;
     }
 
@@ -52,7 +47,11 @@ public class JedisSearchConnectionFactory {
 
         String hostName = jedisConnectionFactory.getHostName();
         int port = jedisConnectionFactory.getPort();
-        return new Client(indexName, hostName, port);
+        int timeout = jedisConnectionFactory.getTimeout();
+        int maxPoolSize = Optional.ofNullable(jedisConnectionFactory.getPoolConfig())
+                .map(GenericObjectPoolConfig::getMaxTotal)
+                .orElse(100);
+        return new Client(indexName, hostName, port, timeout, maxPoolSize);
     }
 
     private Set<String> getSentinels(RedisSentinelConfiguration sentinelConfiguration) {
