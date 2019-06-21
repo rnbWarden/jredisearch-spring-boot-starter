@@ -32,8 +32,10 @@ For JEDIS
 for LETTUCE
 ----
     compile 'org.springframework.data:spring-data-redis:2.2.0.M2'
-    compile 'com.redislabs:lettusearch:1.3.0'
-    compile 'com.redislabs:spring-redisearch:1.1.2'
+    compile 'com.redislabs:lettusearch:1.4.0'
+    compile ('com.redislabs:spring-redisearch:1.1.2') {
+        exclude group: 'com.redislabs', module: 'lettusearch'
+    }
 ----
 
 
