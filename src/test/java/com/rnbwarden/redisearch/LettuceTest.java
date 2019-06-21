@@ -1,8 +1,12 @@
 package com.rnbwarden.redisearch;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
+import com.rnbwarden.redisearch.client.PageableSearchResults;
+import com.rnbwarden.redisearch.client.PagingSearchContext;
 import com.rnbwarden.redisearch.client.SearchContext;
 import com.rnbwarden.redisearch.client.SearchResults;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
@@ -14,15 +18,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
-import java.util.List;
+import java.util.*;
 
 import static com.rnbwarden.redisearch.entity.StubEntity.COLUMN1;
 import static com.rnbwarden.redisearch.entity.StubEntity.LIST_COLUMN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonMap;
 import static org.assertj.core.util.Maps.newHashMap;
 import static org.junit.Assert.*;
 
@@ -86,21 +90,81 @@ public class LettuceTest {
     @Test
     public void testPaging() {
 
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.INFO);
+
+        Set<String> allKeys = new HashSet<>();
         assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
 
-        StubEntity stubEntity1 = new StubEntity("hijklmnop", "value1", emptyList());
-        StubEntity stubEntity2 = new StubEntity("abcdefg", "value1", emptyList());
-        lettuceRediSearchClient.save(stubEntity1);
-        lettuceRediSearchClient.save(stubEntity2);
+        (new Random()).ints(35726).forEach(random -> {
+            String key = "key" + random;
+            allKeys.add(key);
+            lettuceRediSearchClient.save(new StubEntity(key, key + "-value1", emptyList()));
+        });
 
-        assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
+        Set<String> allResults = new HashSet<>();
 
-        SearchContext searchContext = new SearchContext();
-        searchContext.setSortBy(COLUMN1);
-        SearchResults searchResults = lettuceRediSearchClient.findByFields(singletonMap(COLUMN1, "value1"), searchContext);
+        PagingSearchContext context = new PagingSearchContext();
+        context.addField(lettuceRediSearchClient.getField(COLUMN1), "value1");
+//        context.setOffset(0L);
+//        context.setLimit(10000000000L);
+        context.setSortBy(COLUMN1);
 
-        List<StubEntity> stubEntities = lettuceRediSearchClient.deserialize(searchResults);
-        assertEquals(stubEntity2.getColumn1(), stubEntities.get(0).getColumn1());
-        assertEquals(stubEntity1.getColumn1(), stubEntities.get(0).getColumn1());
+        PageableSearchResults<StubEntity> pageableSearchResults = lettuceRediSearchClient.search(context);
+        pageableSearchResults.getResultStream()
+//        pageableSearchResults.getResultStream(false)
+                .forEach(searchResult -> {
+                    synchronized (this) {
+                        allResults.add(searchResult.getKey());
+                    }
+                    if (allResults.size() % 500 == 0) {
+                        System.out.println("Done with " + allResults.size() + " - " + new Date(System.currentTimeMillis()).toString());
+                    }
+                });
+
+        System.out.println("FINISHED with " + allResults.size()
+                + " - total count = " + pageableSearchResults.getTotalResults()
+                + " - total keys = " + allKeys.size()
+                + " - " + new Date(System.currentTimeMillis()).toString());
+    }
+
+    @Test
+    public void testCursorPaging() {
+
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.INFO);
+
+        Set<String> allKeys = new HashSet<>();
+        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+
+        (new Random()).ints(5726).forEach(random -> {
+            String key = "key" + random;
+            allKeys.add(key);
+            lettuceRediSearchClient.save(new StubEntity(key, key + "-value1", emptyList()));
+        });
+
+        Set<String> allResults = new HashSet<>();
+
+        PagingSearchContext context = new PagingSearchContext();
+        context.addField(lettuceRediSearchClient.getField(COLUMN1), "value1");
+        context.setSortBy(COLUMN1);
+        context.setUseClientSidePaging(false);
+
+        PageableSearchResults<StubEntity> pageableSearchResults = lettuceRediSearchClient.search(context);
+        pageableSearchResults.getResultStream(true)
+//        pageableSearchResults.getResultStream()
+                .forEach(searchResult -> {
+                    synchronized (this) {
+                        allResults.add(searchResult.getKey());
+                    }
+                    if (allResults.size() % 500 == 0) {
+                        System.out.println("Done with " + allResults.size() + " - " + new Date(System.currentTimeMillis()).toString());
+                    }
+                });
+
+        root.info("FINISHED with " + allResults.size()
+                + " - total count = " + pageableSearchResults.getTotalResults()
+                + " - total keys = " + allKeys.size()
+                + " - " + new Date(System.currentTimeMillis()).toString());
     }
 }

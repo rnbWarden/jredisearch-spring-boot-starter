@@ -160,6 +160,17 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         return fields;
     }
 
+    /**
+     * protected List<String> getAllFieldNames() {
+     * <p>
+     * List<String> fieldNames = new ArrayList<>();
+     * fieldNames.add(SERIALIZED_DOCUMENT);
+     * getFields().stream().map(SearchableField::getName).forEach(fieldNames::add);
+     * <p>
+     * return fieldNames;
+     * }
+     */
+
     @Override
     public void recreateIndex() {
 
@@ -184,6 +195,11 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                         .map(redisSerializer::deserialize)
                         .collect(toList()))
                 .orElseGet(Collections::emptyList);
+    }
+
+    public E deserialize(Map<String, Object> fields) {
+
+        return redisSerializer.deserialize((byte[]) fields.get(SERIALIZED_DOCUMENT));
     }
 
     /**

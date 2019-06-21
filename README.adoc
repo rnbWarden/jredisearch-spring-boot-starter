@@ -18,24 +18,22 @@ Leverages the existing Spring Data Redis properties.
 Within `build.gradle`
 You will need to include the dependency.
 ----
-compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter'
+compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter:3.0.2'
 ----
 Also, you need to pick the client-specific RediSearch dependencies.
 
 For JEDIS
 ----
     compile 'org.springframework.data:spring-data-redis:2.2.0.M2'
-    compile 'redis.clients:jedis:3.0.1'
+    compile 'redis.clients:jedis:3.1.0-m3'
     compile 'com.redislabs:jredisearch:0.25.0'
-    compile 'com.bsb.common:jredisearch-spring-boot-starter:2.1.6'
 ----
 
 for LETTUCE
 ----
     compile 'org.springframework.data:spring-data-redis:2.2.0.M2'
-    compile 'com.redislabs:lettusearch:1.1.10'
+    compile 'com.redislabs:lettusearch:1.3.0'
     compile 'com.redislabs:spring-redisearch:1.1.2'
-    compile 'com.bsb.common:jredisearch-spring-boot-starter:2.1.6'
 ----
 
 

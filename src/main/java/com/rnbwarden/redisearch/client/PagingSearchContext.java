@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class PagingSearchContext extends SearchContext {
 
-    protected Long offset = 0L;
-    protected Long limit = 1000000L;
+    private Long offset = 0L;
+    private Long limit = 1000000L;
+    private boolean useClientSidePaging = true;
 }
