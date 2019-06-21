@@ -5,10 +5,7 @@ import ch.qos.logback.classic.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
-import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.PagingSearchContext;
-import com.rnbwarden.redisearch.client.SearchContext;
-import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.client.*;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import com.rnbwarden.redisearch.entity.SearchOperator;
 import com.rnbwarden.redisearch.entity.StubEntity;
@@ -164,5 +161,41 @@ public class LettuceTest {
                 + " - total count = " + pageableSearchResults.getTotalResults()
                 + " - total keys = " + allKeys.size()
                 + " - " + new Date(System.currentTimeMillis()).toString());
+    }
+
+    @Test
+    public void testFindAll() {
+
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.INFO);
+
+        Set<String> allKeys = new HashSet<>();
+        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+
+        (new Random()).ints(5726).forEach(random -> {
+            String key = "key" + random;
+            allKeys.add(key);
+            lettuceRediSearchClient.save(new StubEntity(key, key + "-value1", emptyList()));
+        });
+
+        Set<String> allResults = new HashSet<>();
+
+        while (allResults.size() < allKeys.size()) {
+            lettuceRediSearchClient.findAll(allResults.size(), 500, true).getResultStream()
+                    .forEach(searchResult -> addResult(allResults, searchResult));
+        }
+
+        root.info("FINISHED with " + allResults.size()
+                + " - total keys = " + allKeys.size()
+                + " - " + new Date(System.currentTimeMillis()).toString());
+
+    }
+
+    private void addResult(Set<String> allResults, PagedSearchResult<StubEntity> searchResult) {
+
+        allResults.add(searchResult.getKey());
+        if (allResults.size() % 500 == 0) {
+            System.out.println("Done with " + allResults.size() + " - " + new Date(System.currentTimeMillis()).toString());
+        }
     }
 }

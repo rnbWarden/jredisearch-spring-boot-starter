@@ -181,7 +181,12 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     @Override
     public Long getKeyCount() {
 
-        return findAll(0, 0, false).getTotalResults();
+        PagingSearchContext context = new PagingSearchContext();
+        context.setLimit(0L);
+        context.setOffset(0L);
+        context.setNoContent(true);
+        context.setUseClientSidePaging(true);
+        return performTimedOperation("keyCount", () -> search(ALL_QUERY, context)).getTotalResults();
     }
 
     @Override
