@@ -28,7 +28,7 @@ public class LettucePagingSearchResults<E extends RedisSearchableEntity> impleme
     @Override
     public Stream<PagedSearchResult<E>> getResultStream(boolean useParallel) {
 
-        return (useParallel ? delegate.getResults().parallelStream() : delegate.getResults().stream())
+        return (useParallel ? delegate.parallelStream() : delegate.stream())
                 .filter(Objects::nonNull)
                 .map(this::createSearchResult);
     }

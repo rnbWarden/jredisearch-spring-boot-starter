@@ -1,6 +1,5 @@
 package com.rnbwarden.redisearch.client.lettuce;
 
-import com.redislabs.lettusearch.aggregate.AggregateResults;
 import com.redislabs.lettusearch.aggregate.AggregateWithCursorResults;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
 import com.rnbwarden.redisearch.client.PagedSearchResult;
@@ -35,7 +34,7 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
     @Override
     public Long getTotalResults() {
 
-        return delegate.getResults().getCount();
+        return delegate.getCount();
     }
 
     @Override
@@ -69,10 +68,7 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
         private void populateResultsFromAggregateResults(AggregateWithCursorResults<String, Object> delegate) {
 
             ofNullable(delegate).map(AggregateWithCursorResults::getCursor).ifPresent(cursor::set);
-            ofNullable(delegate)
-                    .map(AggregateWithCursorResults::getResults)
-                    .map(AggregateResults::getResults)
-                    .ifPresent(this.results::addAll);
+            ofNullable(delegate).ifPresent(this.results::addAll);
             hasNext = !results.isEmpty();
         }
 

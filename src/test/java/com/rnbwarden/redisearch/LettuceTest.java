@@ -46,9 +46,7 @@ public class LettuceTest {
         RedisCodec redisCodec = new RediSearchLettuceClientAutoConfiguration.LettuceRedisCodec();
 
         RediSearchClient rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
-
         lettuceRediSearchClient = new LettuceRediSearchClient(clazz, rediSearchClient, redisCodec, redisSerializer, 1000L);
-
         lettuceRediSearchClient.recreateIndex();
     }
 

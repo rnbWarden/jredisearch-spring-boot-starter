@@ -29,7 +29,7 @@ public class LettuceSearchResults<E extends RedisSearchableEntity> implements Se
     @Override
     public List<SearchResult<String, Object>> getResults() {
 
-        return delegate.getResults().stream()
+        return delegate.stream()
                 .filter(Objects::nonNull)
                 .map(this::createSearchResult)
                 .collect(toList());

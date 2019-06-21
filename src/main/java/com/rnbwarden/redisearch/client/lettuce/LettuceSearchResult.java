@@ -18,13 +18,13 @@ public class LettuceSearchResult<K extends String, V> implements SearchResult<K,
     @Override
     public Map<K, V> getFields() {
 
-        return delegate.getFields();
+        return delegate;
     }
 
     @Override
     public V getField(K key) {
 
-        return delegate.getFields().get(key);
+        return delegate.get(key);
     }
 
     @Override
