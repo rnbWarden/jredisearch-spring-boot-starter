@@ -229,7 +229,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         AggregateOptions.AggregateOptionsBuilder aggregateOptionsBuilder = AggregateOptions.builder().operation(limit);
 
         ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> {
-            SortProperty sortProperty = SortProperty.builder().order(searchContext.isSortAscending() ? Order.Asc : Order.Desc).build();
+            SortProperty sortProperty = SortProperty.builder().property(sortBy).order(searchContext.isSortAscending() ? Order.Asc : Order.Desc).build();
             aggregateOptionsBuilder.operation(Sort.builder().property(sortProperty).build());
         });
 //        getAllFieldNames().forEach(aggregateOptionsBuilder::load);
