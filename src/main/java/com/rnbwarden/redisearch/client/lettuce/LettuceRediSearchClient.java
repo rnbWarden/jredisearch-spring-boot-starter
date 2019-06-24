@@ -236,8 +236,10 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         aggregateOptionsBuilder.load(SERIALIZED_DOCUMENT);
         AggregateOptions aggregateOptions = aggregateOptionsBuilder.build();
 
+        CursorOptions cursorOptions = CursorOptions.builder().maxIdle(30000L).build();
+
         return execute(connection -> {
-            AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, aggregateOptions, CursorOptions.builder().build());
+            AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, aggregateOptions, cursorOptions);
             return new LettucePagingCursorSearchResults<>(aggregateResults, this);
         });
     }
