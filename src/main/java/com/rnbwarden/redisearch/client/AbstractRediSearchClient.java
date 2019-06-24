@@ -253,7 +253,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         context.setLimit(Long.valueOf(limit));
         context.setOffset(Long.valueOf(offset));
         context.setNoContent(!includeContent);
-        context.setSortBy("1");
+//        context.setSortBy("1");
         context.setUseClientSidePaging(false);
 
         return performTimedOperation("findAll", () -> search(ALL_QUERY, context));
