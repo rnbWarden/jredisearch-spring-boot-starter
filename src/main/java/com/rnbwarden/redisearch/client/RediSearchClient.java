@@ -30,7 +30,14 @@ public interface RediSearchClient<E extends RedisSearchableEntity> {
 
     SearchResults<E> find(SearchContext searchContext);
 
-    PageableSearchResults<E> findAll(@NonNull Integer offset, @NonNull Integer limit, @NonNull boolean includeContent);
+    default PageableSearchResults<E> findAll(@NonNull Integer offset, @NonNull Integer limit) {
+
+        return findAll(offset, limit, false);
+    }
+
+    PageableSearchResults<E> findAll(@NonNull Integer offset, @NonNull Integer limit, @NonNull boolean useClientSidePaging);
+
+    PageableSearchResults<E> findAll(PagingSearchContext pagingSearchContext);
 
     PageableSearchResults<E> search(PagingSearchContext pageableContent);
 

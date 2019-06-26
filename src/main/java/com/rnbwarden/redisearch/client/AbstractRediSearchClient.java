@@ -244,7 +244,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     @Override
     public PageableSearchResults<E> findAll(Integer offset,
                                             Integer limit,
-                                            boolean includeContent) {
+                                            boolean useClientSidePaging) {
 
         offset = ofNullable(offset).orElse(0);
         limit = ofNullable(limit).orElse(defaultMaxResults.intValue());
@@ -252,11 +252,15 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         PagingSearchContext context = new PagingSearchContext();
         context.setLimit(Long.valueOf(limit));
         context.setOffset(Long.valueOf(offset));
-        context.setNoContent(!includeContent);
-//        context.setSortBy("1");
-        context.setUseClientSidePaging(false);
+        context.setUseClientSidePaging(useClientSidePaging);
 
-        return performTimedOperation("findAll", () -> search(ALL_QUERY, context));
+        return findAll(context);
+    }
+
+    @Override
+    public PageableSearchResults<E> findAll(PagingSearchContext pagingSearchContext) {
+
+        return performTimedOperation("findAll", () -> search(ALL_QUERY, pagingSearchContext));
     }
 
     protected String getQualifiedKey(String key) {
