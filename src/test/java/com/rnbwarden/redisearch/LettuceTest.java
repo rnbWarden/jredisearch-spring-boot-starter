@@ -12,7 +12,6 @@ import com.redislabs.lettusearch.aggregate.SortProperty;
 import com.redislabs.lettusearch.search.SearchOptions;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.PagingSearchContext;
 import com.rnbwarden.redisearch.client.SearchContext;
 import com.rnbwarden.redisearch.client.SearchResults;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
@@ -109,7 +108,7 @@ public class LettuceTest {
 
         Set<String> allResults = new HashSet<>();
 
-        PagingSearchContext context = new PagingSearchContext();
+        SearchContext context = new SearchContext();
         context.addField(lettuceRediSearchClient.getField(COLUMN1), "value1");
 //        context.setOffset(0L);
 //        context.setLimit(10000000000L);
@@ -150,7 +149,7 @@ public class LettuceTest {
 
         Set<String> allResults = new HashSet<>();
 
-        PagingSearchContext context = new PagingSearchContext();
+        SearchContext context = new SearchContext();
         context.addField(lettuceRediSearchClient.getField(COLUMN1), "value1");
         context.setSortBy(COLUMN1);
         context.setUseClientSidePaging(false);

@@ -14,7 +14,7 @@ import com.redislabs.lettusearch.search.SearchResults;
 import com.redislabs.lettusearch.search.SortBy;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.PagingSearchContext;
+import com.rnbwarden.redisearch.client.SearchContext;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import com.rnbwarden.redisearch.entity.CurrentPrice;
 import io.lettuce.core.RedisURI;
@@ -57,7 +57,7 @@ public class PagingTest {
 
         Set<String> allResults = new HashSet<>();
 
-        PagingSearchContext context = new PagingSearchContext();
+        SearchContext context = new SearchContext();
         context.addField(lettuceRediSearchClient.getField("brand"), "HAB");
 //        context.setOffset(0L);
 //        context.setLimit(1000L);

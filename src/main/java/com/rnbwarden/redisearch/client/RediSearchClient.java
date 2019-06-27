@@ -29,10 +29,11 @@ public interface RediSearchClient<E extends RedisSearchableEntity> {
 
     SearchResults<E> find(SearchContext searchContext);
 
-    PageableSearchResults<E> findAll(Integer limit);
-    PageableSearchResults<E> findAll(PagingSearchContext pagingSearchContext);
+    PageableSearchResults<E> search(SearchContext searchContext);
 
-    PageableSearchResults<E> search(PagingSearchContext pageableContent);
+    PageableSearchResults<E> findAll(Integer limit);
+
+    PageableSearchResults<E> findAll(SearchContext pagingSearchContext);
 
     List<E> deserialize(SearchResults<E> searchResults);
 }

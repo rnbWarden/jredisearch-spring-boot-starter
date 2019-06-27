@@ -6,14 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.PagingSearchContext;
+import com.rnbwarden.redisearch.client.SearchContext;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import com.rnbwarden.redisearch.entity.StubSkuEntity;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
@@ -27,7 +26,7 @@ import static java.lang.String.format;
 
 //import org.slf4j.Logger;
 
-@Ignore // un-ignore to test with local redis w/ Search module
+//@Ignore // un-ignore to test with local redis w/ Search module
 public class LettuceSkuPagingTest {
 
 //    private static final Logger LOGGER = LoggerFactory.getLogger(LettuceSkuTest.class);
@@ -115,7 +114,7 @@ public class LettuceSkuPagingTest {
 
         Set<String> allResults = new HashSet<>();
 
-        PagingSearchContext context = new PagingSearchContext();
+        SearchContext context = new SearchContext();
         context.addField(lettuceRediSearchClient.getField("brand"), "DND");
 //        context.setOffset(0L);
 //        context.setLimit(10000000000L);

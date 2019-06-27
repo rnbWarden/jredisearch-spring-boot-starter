@@ -7,7 +7,6 @@ import com.redislabs.lettusearch.search.*;
 import com.redislabs.lettusearch.search.field.FieldOptions;
 import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.PagingSearchContext;
 import com.rnbwarden.redisearch.client.SearchContext;
 import com.rnbwarden.redisearch.entity.QueryField;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
@@ -195,22 +194,22 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     }
 
     @Override
-    public PageableSearchResults<E> search(PagingSearchContext pageableContent) {
+    public PageableSearchResults<E> search(SearchContext pageableContent) {
 
-        return performTimedOperation("search", () -> search(buildQueryString(pageableContent), pageableContent));
+        return performTimedOperation("search", () -> pagingSearch(buildQueryString(pageableContent), pageableContent));
     }
 
     @Override
     public PageableSearchResults<E> findAll(Integer limit) {
 
-        PagingSearchContext context = new PagingSearchContext();
+        SearchContext context = new SearchContext();
         context.setLimit(Long.valueOf(ofNullable(limit).orElse(defaultMaxResults.intValue())));
         context.setUseClientSidePaging(false);
         return findAll(context);
     }
 
     @Override
-    protected PageableSearchResults<E> search(String queryString, PagingSearchContext searchContext) {
+    protected PageableSearchResults<E> pagingSearch(String queryString, SearchContext searchContext) {
 
         assert (searchContext != null);
         assert (searchContext.getOffset() != null);
@@ -232,7 +231,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         });
     }
 
-    private PageableSearchResults<E> aggregateSearch(String queryString, PagingSearchContext searchContext) {
+    private PageableSearchResults<E> aggregateSearch(String queryString, SearchContext searchContext) {
 
         com.redislabs.lettusearch.aggregate.Limit limit = builder().num(searchContext.getLimit()).offset(searchContext.getOffset()).build();
 

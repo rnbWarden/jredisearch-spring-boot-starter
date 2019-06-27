@@ -25,6 +25,9 @@ public class SearchContext {
     protected String language;
     protected String sortBy;
     protected boolean sortAscending = true;
+    private Long offset = 0L;
+    private Long limit = 1000000L;
+    private boolean useClientSidePaging = true;
 
     public void addField(SearchableField field, String value) {
 

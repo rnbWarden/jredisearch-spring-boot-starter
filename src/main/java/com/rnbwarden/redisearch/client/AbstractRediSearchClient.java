@@ -181,7 +181,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     @Override
     public Long getKeyCount() {
 
-        PagingSearchContext context = new PagingSearchContext();
+        SearchContext context = new SearchContext();
         context.setLimit(0L);
         context.setOffset(0L);
         context.setNoContent(true);
@@ -244,16 +244,16 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     @Override
     public PageableSearchResults<E> findAll(Integer limit) {
 
-        PagingSearchContext context = new PagingSearchContext();
+        SearchContext context = new SearchContext();
         context.setLimit(Long.valueOf(ofNullable(limit).orElse(defaultMaxResults.intValue())));
         context.setUseClientSidePaging(true);
         return findAll(context);
     }
 
     @Override
-    public PageableSearchResults<E> findAll(PagingSearchContext pagingSearchContext) {
+    public PageableSearchResults<E> findAll(SearchContext searchContext) {
 
-        return performTimedOperation("findAll", () -> search(ALL_QUERY, pagingSearchContext));
+        return performTimedOperation("findAll", () -> pagingSearch(ALL_QUERY, searchContext));
     }
 
     protected String getQualifiedKey(String key) {
@@ -263,5 +263,5 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     protected abstract com.rnbwarden.redisearch.client.SearchResults<E> search(String queryString, SearchContext searchContext);
 
-    protected abstract PageableSearchResults<E> search(String queryString, PagingSearchContext searchContext);
+    protected abstract PageableSearchResults<E> pagingSearch(String queryString, SearchContext searchContext);
 }

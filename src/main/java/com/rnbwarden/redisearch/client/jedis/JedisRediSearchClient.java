@@ -1,6 +1,9 @@
 package com.rnbwarden.redisearch.client.jedis;
 
-import com.rnbwarden.redisearch.client.*;
+import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
+import com.rnbwarden.redisearch.client.PageableSearchResults;
+import com.rnbwarden.redisearch.client.SearchContext;
+import com.rnbwarden.redisearch.client.SearchResults;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import io.redisearch.Query;
@@ -129,6 +132,9 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
             query.setNoContent();
         }
         ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> query.setSortBy(sortBy, searchContext.isSortAscending()));
+        ofNullable(searchContext.getLimit())
+                .map(Long::intValue)
+                .ifPresent(limit -> query.limit(ofNullable(searchContext.getOffset()).map(Long::intValue).orElse(0), limit));
     }
 
     @Override
@@ -153,13 +159,13 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
-    public PageableSearchResults<E> search(PagingSearchContext pageableContent) {
+    public PageableSearchResults<E> search(SearchContext pageableContent) {
 
         return performTimedOperation("search", () -> performPagedJedisSearch(buildQuery(pageableContent)));
     }
 
     @Override
-    protected PageableSearchResults<E> search(String queryString, PagingSearchContext searchContext) {
+    protected PageableSearchResults<E> pagingSearch(String queryString, SearchContext searchContext) {
 
         assert (searchContext != null);
         assert (searchContext.getOffset() != null);
@@ -180,7 +186,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
 /**
- private void aggregateSearch(String queryString, PagingSearchContext searchContext) {
+ private void aggregateSearch(String queryString, SearchContext searchContext) {
 
  AggregationRequest aggregationRequest = new AggregationRequest(queryString)
  .limit(searchContext.getLimit().intValue());
