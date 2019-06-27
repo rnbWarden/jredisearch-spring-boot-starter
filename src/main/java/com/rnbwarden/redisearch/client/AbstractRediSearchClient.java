@@ -26,7 +26,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected static final String ALL_QUERY = "*";
 
     private final Logger logger = LoggerFactory.getLogger(AbstractRediSearchClient.class);
-    private final Long defaultMaxResults;
+    protected final Long defaultMaxResults;
     protected final String index;
     protected final String keyPrefix;
 
@@ -242,18 +242,11 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     }
 
     @Override
-    public PageableSearchResults<E> findAll(Integer offset,
-                                            Integer limit,
-                                            boolean useClientSidePaging) {
-
-        offset = ofNullable(offset).orElse(0);
-        limit = ofNullable(limit).orElse(defaultMaxResults.intValue());
+    public PageableSearchResults<E> findAll(Integer limit) {
 
         PagingSearchContext context = new PagingSearchContext();
-        context.setLimit(Long.valueOf(limit));
-        context.setOffset(Long.valueOf(offset));
-        context.setUseClientSidePaging(useClientSidePaging);
-
+        context.setLimit(Long.valueOf(ofNullable(limit).orElse(defaultMaxResults.intValue())));
+        context.setUseClientSidePaging(true);
         return findAll(context);
     }
 

@@ -189,6 +189,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         if (sortBy != null) {
             builder.sortBy(SortBy.builder().field(sortBy).direction(searchContext.isSortAscending() ? Ascending : Descending).build());
         }
+        builder.limit(Limit.builder().num(defaultMaxResults).offset(0).build());
         builder.noContent(searchContext.isNoContent());
         return builder.build();
     }
@@ -197,6 +198,15 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     public PageableSearchResults<E> search(PagingSearchContext pageableContent) {
 
         return performTimedOperation("search", () -> search(buildQueryString(pageableContent), pageableContent));
+    }
+
+    @Override
+    public PageableSearchResults<E> findAll(Integer limit) {
+
+        PagingSearchContext context = new PagingSearchContext();
+        context.setLimit(Long.valueOf(ofNullable(limit).orElse(defaultMaxResults.intValue())));
+        context.setUseClientSidePaging(false);
+        return findAll(context);
     }
 
     @Override

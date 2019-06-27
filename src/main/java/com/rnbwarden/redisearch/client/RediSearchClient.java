@@ -2,7 +2,6 @@ package com.rnbwarden.redisearch.client;
 
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import com.rnbwarden.redisearch.entity.SearchableField;
-import org.springframework.lang.NonNull;
 
 import java.util.List;
 import java.util.Map;
@@ -30,13 +29,7 @@ public interface RediSearchClient<E extends RedisSearchableEntity> {
 
     SearchResults<E> find(SearchContext searchContext);
 
-    default PageableSearchResults<E> findAll(@NonNull Integer offset, @NonNull Integer limit) {
-
-        return findAll(offset, limit, false);
-    }
-
-    PageableSearchResults<E> findAll(@NonNull Integer offset, @NonNull Integer limit, @NonNull boolean useClientSidePaging);
-
+    PageableSearchResults<E> findAll(Integer limit);
     PageableSearchResults<E> findAll(PagingSearchContext pagingSearchContext);
 
     PageableSearchResults<E> search(PagingSearchContext pageableContent);

@@ -4,8 +4,17 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
+import com.redislabs.lettusearch.StatefulRediSearchConnection;
+import com.redislabs.lettusearch.aggregate.AggregateOptions;
+import com.redislabs.lettusearch.aggregate.AggregateWithCursorResults;
+import com.redislabs.lettusearch.aggregate.CursorOptions;
+import com.redislabs.lettusearch.aggregate.SortProperty;
+import com.redislabs.lettusearch.search.SearchOptions;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
-import com.rnbwarden.redisearch.client.*;
+import com.rnbwarden.redisearch.client.PageableSearchResults;
+import com.rnbwarden.redisearch.client.PagingSearchContext;
+import com.rnbwarden.redisearch.client.SearchContext;
+import com.rnbwarden.redisearch.client.SearchResults;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import com.rnbwarden.redisearch.entity.SearchOperator;
 import com.rnbwarden.redisearch.entity.StubEntity;
@@ -31,6 +40,7 @@ import static org.junit.Assert.*;
 public class LettuceTest {
 
     private LettuceRediSearchClient<StubEntity> lettuceRediSearchClient;
+    private RediSearchClient rediSearchClient;
 
     @Before
     @SuppressWarnings("unchecked")
@@ -42,7 +52,7 @@ public class LettuceTest {
         RedisSerializer<?> redisSerializer = new CompressingJacksonSerializer<>(clazz, objectMapper);
         RedisCodec redisCodec = new RediSearchLettuceClientAutoConfiguration.LettuceRedisCodec();
 
-        RediSearchClient rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
+        rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
         lettuceRediSearchClient = new LettuceRediSearchClient(clazz, rediSearchClient, redisCodec, redisSerializer, 1000L);
         lettuceRediSearchClient.recreateIndex();
     }
@@ -65,7 +75,7 @@ public class LettuceTest {
 
         assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
         assertNotNull(lettuceRediSearchClient.findByKey(stub1.getPersistenceKey()));
-        assertTrue(lettuceRediSearchClient.findAll(0, 100, false).hasResults());
+        assertTrue(lettuceRediSearchClient.findAll(100).hasResults());
 
         SearchResults searchResults = lettuceRediSearchClient.findByFields(newHashMap(COLUMN1, stub1.getColumn1()));
         assertEquals(1, searchResults.getResults().size());
@@ -188,7 +198,6 @@ public class LettuceTest {
         root.info("FINISHED with " + allResults.size()
                 + " - total keys = " + allKeys.size()
                 + " - " + new Date(System.currentTimeMillis()).toString());
-
     }
 
     private void addResult(Set<String> allResults, PagedSearchResult<StubEntity> searchResult) {

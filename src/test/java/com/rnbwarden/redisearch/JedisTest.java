@@ -59,7 +59,7 @@ public class JedisTest {
 
         assertEquals(2, (long) jedisRediSearchClient.getKeyCount());
         assertNotNull(jedisRediSearchClient.findByKey(stub1.getPersistenceKey()));
-        assertTrue(jedisRediSearchClient.findAll(0, 100, false).hasResults());
+        assertTrue(jedisRediSearchClient.findAll(100).hasResults());
 
         SearchResults searchResults = jedisRediSearchClient.findByFields(newHashMap(COLUMN1, stub1.getColumn1()));
         assertEquals(1, searchResults.getResults().size());

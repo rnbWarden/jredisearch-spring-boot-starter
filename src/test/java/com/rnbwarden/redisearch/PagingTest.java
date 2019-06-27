@@ -69,4 +69,26 @@ public class PagingTest {
                     if (allResults.size() % 500 == 0) System.out.println("Done with " + allResults.size());
                 });
     }
+
+    @Test
+    public void testCursor() {
+
+        String index = "testskupriceidx2";
+        StatefulRediSearchConnection<String, String> connection = rediSearchClient.connect();
+
+        SearchOptions searchOptions = SearchOptions.builder().noContent(true).build();
+        SearchResults<String, String> searchResults = connection.sync().search(index, "*", searchOptions);
+        System.out.println("search results = " + searchResults.getCount());
+
+        AggregateOptions aggregateOptions = AggregateOptions.builder()
+                .operation(builder().num(1000).offset(0).build())
+//                .operation(Sort.builder().property(SortProperty.builder().property("sku").order(Order.Asc).build()).build())
+                .load("sku")
+                .build();
+        AggregateWithCursorResults<String, String> aggregateResults = connection.sync().aggregate(index, "@brand:hab", aggregateOptions, CursorOptions.builder().build());
+        System.out.println("cursor results = " + aggregateResults.getCount());
+
+        AggregateWithCursorResults<String, String> aggregateResults2 = connection.sync().cursorRead(index, aggregateResults.getCursor());
+        System.out.println("cursor results = " + aggregateResults2.getCount());
+    }
 }
