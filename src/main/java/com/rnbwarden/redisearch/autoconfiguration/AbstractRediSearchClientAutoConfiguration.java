@@ -33,7 +33,7 @@ public abstract class AbstractRediSearchClientAutoConfiguration implements RediS
     @Qualifier("rediSearchObjectMapper")
     private ObjectMapper rediSearchObjectMapper;
 
-    @Value("${redis.search.defaultResultLimit:0x7fffffff}")
+    @Value("${redis.search.defaultResultLimit:1000000}")
     protected Long defaultMaxResults;
 
     protected DefaultListableBeanFactory beanFactory;
