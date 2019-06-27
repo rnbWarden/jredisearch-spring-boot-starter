@@ -190,21 +190,74 @@ public class LettuceTest {
 
         Set<String> allResults = new HashSet<>();
 
-        while (allResults.size() < allKeys.size()) {
-            lettuceRediSearchClient.findAll(allResults.size(), 500, true).getResultStream()
-                    .forEach(searchResult -> addResult(allResults, searchResult));
-        }
-
+        lettuceRediSearchClient.findAll(Integer.MAX_VALUE).getResultStream()
+                .forEach(searchResult -> {
+                    allResults.add(searchResult.getKey());
+                    if (allResults.size() % 500 == 0) {
+                        System.out.println("Done with " + allResults.size() + " - " + new Date(System.currentTimeMillis()).toString());
+                    }
+                });
         root.info("FINISHED with " + allResults.size()
                 + " - total keys = " + allKeys.size()
                 + " - " + new Date(System.currentTimeMillis()).toString());
     }
 
-    private void addResult(Set<String> allResults, PagedSearchResult<StubEntity> searchResult) {
+    @Test
+    public void testCursor() {
 
-        allResults.add(searchResult.getKey());
-        if (allResults.size() % 500 == 0) {
-            System.out.println("Done with " + allResults.size() + " - " + new Date(System.currentTimeMillis()).toString());
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.INFO);
+
+        (new Random()).ints(3726).forEach(random -> {
+            String key = "key" + random;
+            lettuceRediSearchClient.save(new StubEntity(key, key + "-value1", emptyList()));
+        });
+
+        String index = "stub";
+        StatefulRediSearchConnection<String, String> connection = rediSearchClient.connect();
+
+        Set<String> allResults = new HashSet<>();
+
+        SearchOptions searchOptions = SearchOptions.builder().noContent(true).build();
+        com.redislabs.lettusearch.search.SearchResults<String, String> searchResults = connection.sync().search(index, "*", searchOptions);
+        System.out.println("search results = " + searchResults.getCount());
+
+        AggregateOptions aggregateOptions = AggregateOptions.builder()
+                .load("key")
+                .load("column1")
+//                .operation(com.redislabs.lettusearch.aggregate.Limit.builder().num(100).offset(0).build())
+                .operation(com.redislabs.lettusearch.aggregate.Sort.builder().max(5000L).property(SortProperty.builder().property("key").build()).build())
+                .build();
+
+        CursorOptions cursorOptions = CursorOptions.builder().count(100L).build();
+
+        AggregateWithCursorResults<String, String> aggregateResults = connection.sync().aggregate(index, "*", aggregateOptions, cursorOptions);
+        root.info("cursor results = " + aggregateResults.getCount() + " - size = " + aggregateResults.size());
+        aggregateResults.forEach(map -> allResults.add(map.get("column1")));
+
+        while (aggregateResults.size() == 100) {
+            aggregateResults = connection.sync().cursorRead(index, aggregateResults.getCursor());
+            root.info("cursor results = " + aggregateResults.getCount() + " - size = " + aggregateResults.size());
+            aggregateResults.forEach(map -> allResults.add(map.get("column1")));
         }
+        root.info("all results size = " + allResults.size());
+
+/**
+ aggregateOptions = AggregateOptions.builder()
+ .load("key")
+ //                .operation(com.redislabs.lettusearch.aggregate.Limit.builder().num(100).offset(100).build())
+ .operation(com.redislabs.lettusearch.aggregate.Sort.builder().max(1000L).property(SortProperty.builder().property("key").build()).build())
+ .build();
+ AggregateWithCursorResults<String, String> aggregateResults3 = connection.sync().aggregate(index, "*" , aggregateOptions, cursorOptions);
+ root.info("cursor results = " + aggregateResults3.getCount() + " - size = " + aggregateResults3.size());
+
+ aggregateOptions = AggregateOptions.builder()
+ .load("key")
+ //                .operation(com.redislabs.lettusearch.aggregate.Limit.builder().num(100).offset(200).build())
+ .operation(com.redislabs.lettusearch.aggregate.Sort.builder().max(1000L).property(SortProperty.builder().property("key").build()).build())
+ .build();
+ AggregateWithCursorResults<String, String> aggregateResults4 = connection.sync().aggregate(index, "*" , aggregateOptions, cursorOptions);
+ root.info("cursor results = " + aggregateResults4.getCount() + " - size = " + aggregateResults4.size());
+ */
     }
 }
