@@ -1,9 +1,12 @@
-package com.rnbwarden.redisearch.client;
+package com.rnbwarden.redisearch.client.context;
 
 import com.rnbwarden.redisearch.entity.QueryField;
 import com.rnbwarden.redisearch.entity.SearchOperator;
 import com.rnbwarden.redisearch.entity.SearchableField;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,23 +14,29 @@ import java.util.Collection;
 import java.util.List;
 
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class SearchContext {
 
-    public static Long defaultMaxValue = Long.MAX_VALUE;
-    private List<QueryField> queryFields = new ArrayList<>();
+    protected static final Long DEFAULT_MAX_LIMIT_VALUE = 1000000L;
 
-    protected boolean noContent;
-    protected boolean verbatim;
-    protected boolean noStopWords;
-    protected boolean withScores;
-    protected boolean withPayloads;
-    protected boolean withSortKeys;
-    protected String language;
-    protected String sortBy;
-    protected boolean sortAscending = true;
-    private Long offset = 0L;
-    private Long limit = 1000000L;
-    private boolean useClientSidePaging = true;
+    private boolean noContent;
+    private boolean verbatim;
+    private boolean noStopWords;
+    private boolean withScores;
+    private boolean withPayloads;
+    private boolean withSortKeys;
+    private String language;
+    private String sortBy;
+    @Builder.Default
+    private boolean sortAscending = true;
+    @Builder.Default
+    private long offset = 0L;
+    @Builder.Default
+    private long limit = DEFAULT_MAX_LIMIT_VALUE;
+    @Builder.Default
+    private List<QueryField> queryFields = new ArrayList<>();
 
     public void addField(SearchableField field, String value) {
 

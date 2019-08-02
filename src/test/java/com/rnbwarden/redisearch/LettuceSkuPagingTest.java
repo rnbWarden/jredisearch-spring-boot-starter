@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.SearchContext;
+import com.rnbwarden.redisearch.client.context.PagingSearchContext;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import com.rnbwarden.redisearch.entity.StubSkuEntity;
 import io.lettuce.core.RedisURI;
@@ -50,14 +50,14 @@ public class LettuceSkuPagingTest {
         RediSearchClient rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
         lettuceRediSearchClient = new LettuceRediSearchClient(clazz, rediSearchClient, redisCodec, redisSerializer, 1000L);
 
-//        lettuceRediSearchClient.recreateIndex();
-//        insertTestData();
+        lettuceRediSearchClient.recreateIndex();
+        insertTestData();
     }
 
     @After
     public void tearDown() throws Exception {
 
-//        lettuceRediSearchClient.dropIndex();
+        lettuceRediSearchClient.dropIndex();
     }
 
     private void insertTestData() {
@@ -115,7 +115,8 @@ public class LettuceSkuPagingTest {
 
         Set<String> allResults = new HashSet<>();
 
-        SearchContext context = new SearchContext();
+        PagingSearchContext context = new PagingSearchContext();
+
         context.addField(lettuceRediSearchClient.getField("brand"), "DND");
 //        context.setOffset(0L);
 //        context.setLimit(10000000000L);

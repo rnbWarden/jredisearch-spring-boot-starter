@@ -14,7 +14,7 @@ import com.redislabs.lettusearch.search.SearchResults;
 import com.redislabs.lettusearch.search.SortBy;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.SearchContext;
+import com.rnbwarden.redisearch.client.context.PagingSearchContext;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import com.rnbwarden.redisearch.entity.CurrentPrice;
 import io.lettuce.core.RedisURI;
@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.redislabs.lettusearch.aggregate.Limit.builder;
+import static org.junit.Assert.assertTrue;
 
 @Ignore // un-ignore to test with local redis w/ Search module
 public class PagingTest {
@@ -49,6 +50,7 @@ public class PagingTest {
         RedisSerializer<?> redisSerializer = new CompressingJacksonSerializer<>(clazz, objectMapper);
         RedisCodec redisCodec = new RediSearchLettuceClientAutoConfiguration.LettuceRedisCodec();
         rediSearchClient = RediSearchClient.create(RedisURI.create("redis-11925.redisnp.corp.pgcore.com", 11925));
+//        rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
         lettuceRediSearchClient = new LettuceRediSearchClient(clazz, rediSearchClient, redisCodec, redisSerializer, 20000L);
     }
 
@@ -57,7 +59,8 @@ public class PagingTest {
 
         Set<String> allResults = new HashSet<>();
 
-        SearchContext context = new SearchContext();
+        PagingSearchContext context = new PagingSearchContext();
+
         context.addField(lettuceRediSearchClient.getField("brand"), "HAB");
 //        context.setOffset(0L);
 //        context.setLimit(1000L);
@@ -71,7 +74,7 @@ public class PagingTest {
                     if (allResults.size() % 500 == 0) System.out.println("Done with " + allResults.size());
                 });
 
-        System.out.println("Finished with " + allResults.size());
+        assertTrue(0 < allResults.size());
     }
 
     @Test

@@ -7,7 +7,8 @@ import com.redislabs.lettusearch.search.*;
 import com.redislabs.lettusearch.search.field.FieldOptions;
 import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.SearchContext;
+import com.rnbwarden.redisearch.client.context.PagingSearchContext;
+import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.entity.QueryField;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
@@ -25,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static com.redislabs.lettusearch.aggregate.Limit.builder;
 import static com.redislabs.lettusearch.search.SortBy.Direction.Ascending;
 import static com.redislabs.lettusearch.search.SortBy.Direction.Descending;
 import static java.lang.String.format;
@@ -99,6 +99,9 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
                                                               boolean sortable,
                                                               Function<E, String> serializationFunction) {
 
+        if (SERIALIZED_DOCUMENT.equalsIgnoreCase(name)) {
+            throw new IllegalArgumentException(format("Field name '%s' is not protected! Please use another name.", name));
+        }
         if (type == RediSearchFieldType.TEXT) {
             return new SearchableLettuceTextField(name, sortable, serializationFunction);
         }
@@ -165,7 +168,8 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     protected com.rnbwarden.redisearch.client.SearchResults<E> search(String queryString, SearchContext searchContext) {
 
         return execute(connection -> {
-            com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, configureQueryOptions(searchContext));
+            SearchOptions searchOptions = configureQueryOptions(searchContext);
+            com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, searchOptions);
             logger.debug("found count {}", searchResults.getCount());
             return new LettuceSearchResults(keyPrefix, searchResults);
         });
@@ -184,67 +188,54 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     private SearchOptions configureQueryOptions(SearchContext searchContext) {
 
         SearchOptions.SearchOptionsBuilder builder = SearchOptions.builder();
-        String sortBy = searchContext.getSortBy();
-        if (sortBy != null) {
-            builder.sortBy(SortBy.builder().field(sortBy).direction(searchContext.isSortAscending() ? Ascending : Descending).build());
-        }
-        builder.limit(Limit.builder().num(defaultMaxResults).offset(0).build());
+        Optional.ofNullable(searchContext.getSortBy())
+                .ifPresent(sortBy -> builder.sortBy(SortBy.builder().field(sortBy)
+                        .direction(searchContext.isSortAscending() ? Ascending : Descending).build()));
+        builder.limit(Limit.builder().num(searchContext.getLimit()).offset(searchContext.getOffset()).build());
         builder.noContent(searchContext.isNoContent());
         return builder.build();
     }
 
     @Override
-    public PageableSearchResults<E> search(SearchContext pageableContent) {
+    public PageableSearchResults<E> search(PagingSearchContext pagingSearchContext) {
 
-        return performTimedOperation("search", () -> pagingSearch(buildQueryString(pageableContent), pageableContent));
+        return performTimedOperation("search", () -> pagingSearch(buildQueryString(pagingSearchContext), pagingSearchContext));
     }
 
     @Override
-    public PageableSearchResults<E> findAll(Integer limit) {
+    protected PageableSearchResults<E> pagingSearch(String queryString, PagingSearchContext pagingSearchContext) {
 
-        SearchContext context = new SearchContext();
-        context.setLimit(Long.valueOf(ofNullable(limit).orElse(defaultMaxResults.intValue())));
-        context.setUseClientSidePaging(false);
-        return findAll(context);
+        assert (queryString != null);
+        assert (pagingSearchContext != null);
+
+        return pagingSearchContext.isUseClientSidePaging() ? clientSidePagingSearch(queryString, pagingSearchContext)
+                : aggregateSearch(queryString, pagingSearchContext);
     }
 
-    @Override
-    protected PageableSearchResults<E> pagingSearch(String queryString, SearchContext searchContext) {
+    private PageableSearchResults<E> clientSidePagingSearch(String queryString, PagingSearchContext pagingSearchContext) {
 
-        assert (searchContext != null);
-        assert (searchContext.getOffset() != null);
-        assert (searchContext.getLimit() != null);
-
-        if (!searchContext.isUseClientSidePaging()) {
-            return aggregateSearch(queryString, searchContext);
-        }
-
-        searchContext.setNoContent(true);
-
+        pagingSearchContext.setNoContent(true); //First query should explicitly avoid retrieving data
         return execute(connection -> {
-            SearchOptions searchOptions = configureQueryOptions(searchContext);
-            searchOptions.setLimit(Limit.builder().num(searchContext.getLimit()).offset(searchContext.getOffset()).build());
-
-            com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, searchOptions);
+            SearchOptions lettusearchOptions = configureQueryOptions(pagingSearchContext);
+            SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, lettusearchOptions);
             logger.debug("found count {}", searchResults.getCount());
             return new LettucePagingSearchResults<>(searchResults, this);
         });
     }
 
-    private PageableSearchResults<E> aggregateSearch(String queryString, SearchContext searchContext) {
+    private PageableSearchResults<E> aggregateSearch(String queryString, PagingSearchContext searchContext) {
 
-        com.redislabs.lettusearch.aggregate.Limit limit = builder().num(searchContext.getLimit()).offset(searchContext.getOffset()).build();
-
-        AggregateOptions.AggregateOptionsBuilder aggregateOptionsBuilder = AggregateOptions.builder().operation(limit);
+        AggregateOptions.AggregateOptionsBuilder aggregateOptionsBuilder = AggregateOptions.builder()
+                .operation(com.redislabs.lettusearch.aggregate.Limit.builder().num(searchContext.getLimit())
+                        .offset(searchContext.getOffset()).build());
 
         ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> {
             SortProperty sortProperty = SortProperty.builder().property(sortBy).order(searchContext.isSortAscending() ? Order.Asc : Order.Desc).build();
             aggregateOptionsBuilder.operation(Sort.builder().property(sortProperty).build());
         });
-//        getAllFieldNames().forEach(aggregateOptionsBuilder::load);
         aggregateOptionsBuilder.load(SERIALIZED_DOCUMENT);
-        AggregateOptions aggregateOptions = aggregateOptionsBuilder.build();
 
+        AggregateOptions aggregateOptions = aggregateOptionsBuilder.build();
         CursorOptions cursorOptions = CursorOptions.builder().maxIdle(30000L).build();
 
         return execute(connection -> {

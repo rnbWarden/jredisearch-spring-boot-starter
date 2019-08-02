@@ -1,8 +1,11 @@
 package com.rnbwarden.redisearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rnbwarden.redisearch.client.SearchContext;
+import com.rnbwarden.redisearch.client.PageableSearchResults;
+import com.rnbwarden.redisearch.client.PagedSearchResult;
 import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.client.context.PagingSearchContext;
+import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.client.jedis.JedisRediSearchClient;
 import com.rnbwarden.redisearch.entity.SearchOperator;
 import com.rnbwarden.redisearch.entity.StubEntity;
@@ -14,6 +17,9 @@ import org.junit.Test;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.rnbwarden.redisearch.entity.StubEntity.COLUMN1;
 import static com.rnbwarden.redisearch.entity.StubEntity.LIST_COLUMN;
@@ -88,12 +94,33 @@ public class JedisTest {
 
         assertEquals(2, (long) jedisRediSearchClient.getKeyCount());
 
-        SearchContext searchContext = new SearchContext();
-        searchContext.setSortBy(COLUMN1);
-        SearchResults searchResults = jedisRediSearchClient.findByFields(singletonMap(COLUMN1, "value1"), searchContext);
+        PagingSearchContext pagingSearchContext = jedisRediSearchClient.getPagingSearchContextWithFields(singletonMap(COLUMN1, "value1"));
+        PageableSearchResults<StubEntity> searchResults = jedisRediSearchClient.search(pagingSearchContext);
 
-        List<StubEntity> stubEntities = jedisRediSearchClient.deserialize(searchResults);
+        List<StubEntity> stubEntities = searchResults.getResultStream(false)
+                .map(PagedSearchResult::getResult)
+                .map(Optional::get)
+                .collect(Collectors.toList());
         assertEquals(stubEntity2.getColumn1(), stubEntities.get(0).getColumn1());
         assertEquals(stubEntity1.getColumn1(), stubEntities.get(0).getColumn1());
+    }
+
+    @Test
+    public void testSorting() {
+
+        assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
+        IntStream.range(1, 10000).forEach(i -> jedisRediSearchClient.save(new StubEntity("zyxwvut" + i, i + "value", emptyList())));
+
+        assertEquals(9999, (long) jedisRediSearchClient.getKeyCount());
+
+        PageableSearchResults<StubEntity> searchResults = jedisRediSearchClient.findAll(100000);
+        assertEquals(9999, searchResults.getResultStream().count());
+
+        List<StubEntity> stubEntities = searchResults.getResultStream(false)
+                .map(PagedSearchResult::getResult)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+        assertEquals("zyxwvut9999", stubEntities.get(0).getKey());
+        assertEquals("zyxwvut9998", stubEntities.get(1).getKey());
     }
 }

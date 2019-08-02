@@ -12,8 +12,9 @@ import com.redislabs.lettusearch.aggregate.SortProperty;
 import com.redislabs.lettusearch.search.SearchOptions;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.SearchContext;
 import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.client.context.PagingSearchContext;
+import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import com.rnbwarden.redisearch.entity.SearchOperator;
 import com.rnbwarden.redisearch.entity.StubEntity;
@@ -76,7 +77,7 @@ public class LettuceTest {
         assertNotNull(lettuceRediSearchClient.findByKey(stub1.getPersistenceKey()));
         assertTrue(lettuceRediSearchClient.findAll(100).hasResults());
 
-        SearchResults searchResults = lettuceRediSearchClient.findByFields(newHashMap(COLUMN1, stub1.getColumn1()));
+        SearchResults<StubEntity> searchResults = lettuceRediSearchClient.findByFields(newHashMap(COLUMN1, stub1.getColumn1()));
         assertEquals(1, searchResults.getResults().size());
         assertNotNull(searchResults.getResults().get(0));
         List<StubEntity> resultEntities = lettuceRediSearchClient.deserialize(searchResults);
@@ -108,7 +109,7 @@ public class LettuceTest {
 
         Set<String> allResults = new HashSet<>();
 
-        SearchContext context = new SearchContext();
+        PagingSearchContext context = new PagingSearchContext();
         context.addField(lettuceRediSearchClient.getField(COLUMN1), "value1");
 //        context.setOffset(0L);
 //        context.setLimit(10000000000L);
@@ -149,10 +150,11 @@ public class LettuceTest {
 
         Set<String> allResults = new HashSet<>();
 
-        SearchContext context = new SearchContext();
+        PagingSearchContext context = new PagingSearchContext();
+
         context.addField(lettuceRediSearchClient.getField(COLUMN1), "value1");
         context.setSortBy(COLUMN1);
-        context.setUseClientSidePaging(false);
+//        context.setUseClientSidePaging(false);
 
         PageableSearchResults<StubEntity> pageableSearchResults = lettuceRediSearchClient.search(context);
         pageableSearchResults.getResultStream(true)

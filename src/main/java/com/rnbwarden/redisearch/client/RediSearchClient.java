@@ -1,7 +1,8 @@
 package com.rnbwarden.redisearch.client;
 
+import com.rnbwarden.redisearch.client.context.PagingSearchContext;
+import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
-import com.rnbwarden.redisearch.entity.SearchableField;
 
 import java.util.List;
 import java.util.Map;
@@ -16,24 +17,28 @@ public interface RediSearchClient<E extends RedisSearchableEntity> {
     void save(E entity);
     void delete(String key);
 
-    SearchableField<E> getField(String name);
-
     Optional<E> findByKey(String key);
 
     default SearchResults<E> findByFields(Map<String, String> fieldNameValues) {
 
-        return findByFields(fieldNameValues, new SearchContext());
+        return find(getSearchContextWithFields(fieldNameValues));
     }
 
-    SearchResults<E> findByFields(Map<String, String> fieldNameValues, SearchContext searchContext);
-
+    SearchContext getSearchContextWithFields(Map<String, String> fieldNameValues);
     SearchResults<E> find(SearchContext searchContext);
 
-    PageableSearchResults<E> search(SearchContext searchContext);
+    default PageableSearchResults<E> searchByFields(Map<String, String> fieldNameValues) {
+
+        return search(getPagingSearchContextWithFields(fieldNameValues));
+    }
+
+    PagingSearchContext getPagingSearchContextWithFields(Map<String, String> fieldNameValues);
+
+    PageableSearchResults<E> search(PagingSearchContext pagingSearchContext);
 
     PageableSearchResults<E> findAll(Integer limit);
 
-    PageableSearchResults<E> findAll(SearchContext pagingSearchContext);
+    PageableSearchResults<E> findAll(PagingSearchContext pagingSearchContext);
 
     List<E> deserialize(SearchResults<E> searchResults);
 }

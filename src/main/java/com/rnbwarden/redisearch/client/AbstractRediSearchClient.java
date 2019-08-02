@@ -1,5 +1,7 @@
 package com.rnbwarden.redisearch.client;
 
+import com.rnbwarden.redisearch.client.context.PagingSearchContext;
+import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.entity.*;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -13,6 +15,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
@@ -31,8 +34,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected final String keyPrefix;
 
     protected final RedisSerializer<E> redisSerializer;
-    private final Class<E> clazz;
-    private final List<T> fields = new ArrayList<>();
+    private final Map<String, T> fields = new LinkedHashMap<>();
 
     protected AbstractRediSearchClient(Class<E> clazz,
                                        RedisSerializer<E> redisSerializer,
@@ -40,16 +42,15 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
         this.redisSerializer = redisSerializer;
         this.defaultMaxResults = defaultMaxResults;
-        this.clazz = clazz;
-        this.index = getIndex(this.clazz);
+        this.index = getIndex(clazz);
         this.keyPrefix = format("%s:", index);
-        initSearchableFields();
+        initSearchableFields(clazz);
     }
 
-    private void initSearchableFields() {
+    private void initSearchableFields(Class<E> clazz) {
 
-        fields.addAll(getSearchableFieldsFromFields());
-        fields.addAll(getSearchFieldsFromMethods());
+        getSearchableFieldsFromFields(clazz).forEach(field -> fields.put(field.getName(), field));
+        getSearchFieldsFromMethods(clazz).forEach(field -> fields.put(field.getName(), field));
     }
 
     protected abstract void checkAndCreateIndex();
@@ -59,7 +60,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                                                boolean sortable,
                                                Function<E, String> serializationFunction);
 
-    private List<T> getSearchableFieldsFromFields() {
+    private List<T> getSearchableFieldsFromFields(Class<E> clazz) {
 
         return FieldUtils.getFieldsListWithAnnotation(clazz, RediSearchField.class).stream()
                 .map(field -> stream(field.getAnnotations())
@@ -91,7 +92,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         }
     }
 
-    private List<T> getSearchFieldsFromMethods() {
+    private List<T> getSearchFieldsFromMethods(Class<E> clazz) {
 
         return MethodUtils.getMethodsListWithAnnotation(clazz, RediSearchField.class).stream()
                 .map(method -> stream(method.getAnnotations())
@@ -135,41 +136,27 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     protected List<T> getFields() {
 
-        return fields;
+        return fields.values().stream().collect(Collectors.toUnmodifiableList());
     }
 
-    @Override
     public SearchableField<E> getField(String name) {
 
-        return fields.stream()
-                .filter(f -> f.getName().equals(name))
-                .findAny()
+        return Optional.ofNullable(fields.get(name))
                 .orElseThrow(() -> new IllegalArgumentException("Invalid field name: " + name));
     }
 
     protected Map<String, Object> serialize(E entity) {
 
-        Map<String, Object> fields = new HashMap<>();
-        getFields().forEach(field -> {
+        Map<String, Object> serializedFields = new HashMap<>();
+        fields.forEach((fieldName, field) -> {
             String serializedValue = field.serialize(entity);
             if (serializedValue != null) {
-                fields.put(field.getName(), serializedValue);
+                serializedFields.put(fieldName, serializedValue);
             }
         });
-        fields.put(SERIALIZED_DOCUMENT, redisSerializer.serialize(entity));
-        return fields;
+        serializedFields.put(SERIALIZED_DOCUMENT, redisSerializer.serialize(entity));
+        return serializedFields;
     }
-
-    /**
-     * protected List<String> getAllFieldNames() {
-     * <p>
-     * List<String> fieldNames = new ArrayList<>();
-     * fieldNames.add(SERIALIZED_DOCUMENT);
-     * getFields().stream().map(SearchableField::getName).forEach(fieldNames::add);
-     * <p>
-     * return fieldNames;
-     * }
-     */
 
     @Override
     public void recreateIndex() {
@@ -181,12 +168,11 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     @Override
     public Long getKeyCount() {
 
-        SearchContext context = new SearchContext();
-        context.setLimit(0L);
-        context.setOffset(0L);
-        context.setNoContent(true);
-        context.setUseClientSidePaging(true);
-        return performTimedOperation("keyCount", () -> search(ALL_QUERY, context)).getTotalResults();
+        return performTimedOperation("keyCount", () -> {
+            SearchContext searchContext = SearchContext.builder().offset(0).limit(0).noContent(true).build();
+            SearchResults<E> searchResults = search(ALL_QUERY, searchContext);
+            return searchResults.getTotalResults();
+        });
     }
 
     @Override
@@ -234,34 +220,43 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     }
 
     @Override
-    public SearchResults<E> findByFields(Map<String, String> fieldNameValues,
-                                         SearchContext searchContext) {
+    public SearchContext getSearchContextWithFields(Map<String, String> fieldNameValues) {
 
+        SearchContext searchContext = SearchContext.builder().build();
         fieldNameValues.forEach((name, value) -> searchContext.addField(getField(name), value));
-        return find(searchContext);
+        return searchContext;
+    }
+
+    @Override
+    public PagingSearchContext getPagingSearchContextWithFields(Map<String, String> fieldNameValues) {
+
+        PagingSearchContext pagingSearchContext = new PagingSearchContext();
+        fieldNameValues.forEach((name, value) -> pagingSearchContext.addField(getField(name), value));
+        return pagingSearchContext;
     }
 
     @Override
     public PageableSearchResults<E> findAll(Integer limit) {
 
-        SearchContext context = new SearchContext();
-        context.setLimit(Long.valueOf(ofNullable(limit).orElse(defaultMaxResults.intValue())));
-        context.setUseClientSidePaging(true);
-        return findAll(context);
+        PagingSearchContext pagingSearchContext = new PagingSearchContext();
+        pagingSearchContext.setLimit(Long.valueOf(ofNullable(limit).orElse(defaultMaxResults.intValue())));
+        return findAll(pagingSearchContext);
     }
 
     @Override
-    public PageableSearchResults<E> findAll(SearchContext searchContext) {
+    public PageableSearchResults<E> findAll(PagingSearchContext pagingSearchContext) {
 
-        return performTimedOperation("findAll", () -> pagingSearch(ALL_QUERY, searchContext));
+        return performTimedOperation("findAll", () -> pagingSearch(ALL_QUERY, pagingSearchContext));
     }
+
+    protected abstract SearchResults<E> search(String queryString, SearchContext searchContext);
+
+    protected abstract PageableSearchResults<E> pagingSearch(String queryString, PagingSearchContext pagingSearchContext);
 
     protected String getQualifiedKey(String key) {
 
         return keyPrefix + key;
     }
 
-    protected abstract com.rnbwarden.redisearch.client.SearchResults<E> search(String queryString, SearchContext searchContext);
 
-    protected abstract PageableSearchResults<E> pagingSearch(String queryString, SearchContext searchContext);
 }

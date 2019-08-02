@@ -2,8 +2,9 @@ package com.rnbwarden.redisearch.client.jedis;
 
 import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.SearchContext;
 import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.client.context.PagingSearchContext;
+import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import io.redisearch.Query;
@@ -46,6 +47,9 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
                                                             boolean sortable,
                                                             Function<E, String> serializationFunction) {
 
+        if (SERIALIZED_DOCUMENT.equalsIgnoreCase(name)) {
+            throw new IllegalArgumentException(format("Field name '%s' is not protected! Please use another name.", name));
+        }
         if (type == RediSearchFieldType.TEXT) {
             return new SearchableJedisTextField(name, sortable, serializationFunction);
         }
@@ -111,7 +115,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
-    public SearchResults find(SearchContext context) {
+    public SearchResults<E> find(SearchContext context) {
 
         return performTimedOperation("search", () -> search(buildQuery(context)));
     }
@@ -132,9 +136,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
             query.setNoContent();
         }
         ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> query.setSortBy(sortBy, searchContext.isSortAscending()));
-        ofNullable(searchContext.getLimit())
-                .map(Long::intValue)
-                .ifPresent(limit -> query.limit(ofNullable(searchContext.getOffset()).map(Long::intValue).orElse(0), limit));
+        query.limit(Long.valueOf(searchContext.getOffset()).intValue(), Long.valueOf(searchContext.getLimit()).intValue());
     }
 
     @Override
@@ -148,7 +150,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     @SuppressWarnings("unchecked")
     private SearchResults<E> search(Query query) {
 
-        return new JedisSearchResults(keyPrefix, performJedisSearch(query));
+        return new JedisSearchResults<>(keyPrefix, performJedisSearch(query));
     }
 
     private SearchResult performJedisSearch(Query query) {
@@ -159,23 +161,21 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
-    public PageableSearchResults<E> search(SearchContext pageableContent) {
+    public PageableSearchResults<E> search(PagingSearchContext pagingSearchContext) {
 
-        return performTimedOperation("search", () -> performPagedJedisSearch(buildQuery(pageableContent)));
+        return performTimedOperation("search", () -> performPagedJedisSearch(buildQuery(pagingSearchContext)));
     }
 
     @Override
-    protected PageableSearchResults<E> pagingSearch(String queryString, SearchContext searchContext) {
+    protected PageableSearchResults<E> pagingSearch(String queryString, PagingSearchContext pagingSearchContext) {
 
-        assert (searchContext != null);
-        assert (searchContext.getOffset() != null);
-        assert (searchContext.getLimit() != null);
+        assert (pagingSearchContext != null);
 
         //aggregateSearch(queryString, searchContext);
 
         return performTimedOperation("search", () -> {
             Query query = new Query(queryString);
-            configureQueryOptions(searchContext, query);
+            configureQueryOptions(pagingSearchContext, query);
             return performPagedJedisSearch(query);
         });
     }
