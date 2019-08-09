@@ -19,7 +19,7 @@ import java.util.List;
 @NoArgsConstructor
 public class SearchContext {
 
-    protected static final Long DEFAULT_MAX_LIMIT_VALUE = 1000000L;
+    public static final Long DEFAULT_MAX_LIMIT_VALUE = 1000000L;
 
     private boolean noContent;
     private boolean verbatim;

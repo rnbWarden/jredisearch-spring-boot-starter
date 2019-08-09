@@ -157,6 +157,17 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         }
     }
 
+//    private List<E> findByKeys(String ... keys) {
+//
+//
+//        try (StatefulRediSearchConnection<String, Object> connection = pool.borrowObject()) {
+//            connection.sync().mget(keys);
+//            return mget;
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
+
     @Override
     public com.rnbwarden.redisearch.client.SearchResults<E> find(SearchContext searchContext) {
 
