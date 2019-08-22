@@ -12,6 +12,7 @@ import com.rnbwarden.redisearch.entity.StubEntity;
 import io.redisearch.client.Client;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
@@ -31,7 +32,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.util.Maps.newHashMap;
 import static org.junit.Assert.*;
 
-//@Ignore // un-ignore to test with local redis w/ Search module
+@Ignore // un-ignore to test with local redis w/ Search module
 public class JedisTest {
 
     private JedisRediSearchClient<StubEntity> jedisRediSearchClient;

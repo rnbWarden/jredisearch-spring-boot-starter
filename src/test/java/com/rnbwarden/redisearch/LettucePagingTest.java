@@ -13,6 +13,7 @@ import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
@@ -22,7 +23,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.junit.Assert.assertEquals;
 
-//@Ignore // un-ignore to test with local redis (with Search) module
+@Ignore // un-ignore to test with local redis (with Search) module
 public class LettucePagingTest {
 
     private static final Logger LOGGER = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
