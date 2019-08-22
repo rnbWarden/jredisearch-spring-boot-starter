@@ -41,9 +41,9 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
     public synchronized Stream<PagedSearchResult<E>> getResultStream(boolean useParallel) {
 
         return StreamSupport.stream(Spliterators.spliterator(iterator, getTotalResults(),
-                Spliterator.IMMUTABLE | Spliterator.NONNULL | Spliterator.CONCURRENT | Spliterator.SIZED), useParallel)
-                .onClose(iterator::close)
+                Spliterator.NONNULL | Spliterator.CONCURRENT | Spliterator.DISTINCT), useParallel)
                 .filter(Objects::nonNull)
+                .onClose(iterator::close)
                 .map(this::createSearchResult);
     }
 
@@ -55,13 +55,12 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
     class ResultsIterator implements Iterator<Map<String, Object>>, Closeable {
 
         private final Object lockObject = new Object();
-        private boolean hasNext;
-        private ConcurrentLinkedQueue<Map<String, Object>> results = new ConcurrentLinkedQueue<>();
-        private final AtomicLong cursor;
+        private volatile boolean hasNext;
+        private volatile ConcurrentLinkedQueue<Map<String, Object>> results = new ConcurrentLinkedQueue<>();
+        private final AtomicLong cursor = new AtomicLong();
 
         ResultsIterator(AggregateWithCursorResults<String, Object> delegate) {
 
-            cursor = new AtomicLong();
             populateResultsFromAggregateResults(delegate);
         }
 
@@ -81,9 +80,8 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
         @Override
         public Map<String, Object> next() {
 
-            Map<String, Object> result = results.poll();
-            if (result != null) {
-                return result;
+            if (results.peek() != null) {
+                return results.poll();
             }
             synchronized (lockObject) {
                 populateResultsFromAggregateResults(lettuceRediSearchClient.readCursor(cursor.get()));

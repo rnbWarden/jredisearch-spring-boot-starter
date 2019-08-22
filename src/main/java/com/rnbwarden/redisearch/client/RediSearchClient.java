@@ -4,6 +4,7 @@ import com.rnbwarden.redisearch.client.context.PagingSearchContext;
 import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +26,9 @@ public interface RediSearchClient<E extends RedisSearchableEntity> {
     }
 
     SearchContext getSearchContextWithFields(Map<String, String> fieldNameValues);
+
+    List<E> findByKeys(Collection<String> keys);
+
     SearchResults<E> find(SearchContext searchContext);
 
     default PageableSearchResults<E> searchByFields(Map<String, String> fieldNameValues) {

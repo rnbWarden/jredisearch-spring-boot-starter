@@ -21,13 +21,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import static com.redislabs.lettusearch.search.SortBy.Direction.Ascending;
-import static com.redislabs.lettusearch.search.SortBy.Direction.Descending;
+import static com.redislabs.lettusearch.search.Direction.Ascending;
+import static com.redislabs.lettusearch.search.Direction.Descending;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 
@@ -55,7 +54,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         StatefulRediSearchConnection<String, String> uncompressedConnection = null;
         try {
             uncompressedConnection = rediSearchClient.connect();
-            uncompressedConnection.sync().indexInfo(index);
+            uncompressedConnection.sync().ftInfo(index);
             alterSortableFields(uncompressedConnection);
         } catch (RedisCommandExecutionException ex) {
             if (uncompressedConnection == null) {
@@ -157,7 +156,31 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         }
     }
 
-//    private List<E> findByKeys(String ... keys) {
+    @Override
+    public List<E> findByKeys(Collection<String> keys) {
+
+        return performTimedOperation("findByKeys",
+                () -> {
+                    String[] qualifiedKeys = keys.stream().map(this::getQualifiedKey).toArray(String[]::new);
+                    return getByKeys(qualifiedKeys).stream()
+                            .filter(Objects::nonNull)
+                            .map(map -> map.get(SERIALIZED_DOCUMENT))
+                            .map(byte[].class::cast)
+                            .map(redisSerializer::deserialize)
+                            .collect(Collectors.toList());
+                });
+    }
+
+    private List<Map<String, Object>> getByKeys(String[] qualifiedKeys) {
+
+        try (StatefulRediSearchConnection<String, Object> connection = pool.borrowObject()) {
+            return connection.sync().ftMget(index, qualifiedKeys);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    //    private List<E> findByKeys(String ... keys) {
 //
 //
 //        try (StatefulRediSearchConnection<String, Object> connection = pool.borrowObject()) {

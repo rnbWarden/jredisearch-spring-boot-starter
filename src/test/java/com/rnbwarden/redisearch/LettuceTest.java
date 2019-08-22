@@ -22,21 +22,23 @@ import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.rnbwarden.redisearch.entity.StubEntity.COLUMN1;
 import static com.rnbwarden.redisearch.entity.StubEntity.LIST_COLUMN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.function.Function.identity;
 import static org.assertj.core.util.Maps.newHashMap;
 import static org.junit.Assert.*;
 
-@Ignore // un-ignore to test with local redis w/ Search module
+//@Ignore // un-ignore to test with local redis w/ Search module
 public class LettuceTest {
 
     private LettuceRediSearchClient<StubEntity> lettuceRediSearchClient;
@@ -260,5 +262,37 @@ public class LettuceTest {
  AggregateWithCursorResults<String, String> aggregateResults4 = connection.sync().aggregate(index, "*" , aggregateOptions, cursorOptions);
  root.info("cursor results = " + aggregateResults4.getCount() + " - size = " + aggregateResults4.size());
  */
+    }
+
+    @Test
+    public void testMultiGet() {
+
+        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+
+        List<String> keys = new ArrayList<>();
+        IntStream.range(1, 100).forEach(i -> {
+            StubEntity entity = new StubEntity("zyxwvut" + i, i + "value", emptyList());
+            keys.add(entity.getPersistenceKey());
+            lettuceRediSearchClient.save(entity);
+        });
+
+        List<String> fetchKeys = new ArrayList<>();
+        fetchKeys.add(keys.get(7));
+        fetchKeys.add(keys.get(36));
+        fetchKeys.add(keys.get(44));
+        fetchKeys.add(keys.get(59));
+        fetchKeys.add(keys.get(73));
+        fetchKeys.add(keys.get(81));
+        fetchKeys.add("unknown-key");
+
+        List<StubEntity> results = lettuceRediSearchClient.findByKeys(fetchKeys);
+        assertEquals(fetchKeys.size() - 1, results.size());
+
+        Map<String, StubEntity> resultsMap = results.stream().collect(Collectors.toMap(StubEntity::getPersistenceKey, identity()));
+
+        fetchKeys.stream()
+                .filter(key -> !key.equals(fetchKeys.get(fetchKeys.size() - 1)))
+                .forEach(key -> assertNotNull(resultsMap.get(key)));
+
     }
 }

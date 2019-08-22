@@ -7,20 +7,21 @@ import com.rnbwarden.redisearch.client.context.PagingSearchContext;
 import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
+import io.redisearch.Document;
 import io.redisearch.Query;
 import io.redisearch.Schema;
 import io.redisearch.SearchResult;
 import io.redisearch.client.Client;
 import io.redisearch.querybuilder.QueryNode;
+import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import redis.clients.jedis.exceptions.JedisDataException;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static io.redisearch.querybuilder.QueryBuilder.intersect;
 import static java.lang.String.format;
@@ -111,6 +112,23 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
                         .map(d -> d.get(SERIALIZED_DOCUMENT))
                         .map(b -> (byte[]) b)
                         .map(redisSerializer::deserialize)
+        );
+    }
+
+    @Override
+    public List<E> findByKeys(@NonNull Collection<String> keys) {
+
+        return performTimedOperation("findByKeys",
+                () -> {
+                    String[] qualifiedKeys = keys.stream().map(this::getQualifiedKey).toArray(String[]::new);
+                    List<Document> documents = jRediSearchClient.getDocuments(false, qualifiedKeys);
+                    return documents.stream()
+                            .filter(Objects::nonNull)
+                            .map(d -> d.get(SERIALIZED_DOCUMENT))
+                            .map(b -> (byte[]) b)
+                            .map(redisSerializer::deserialize)
+                            .collect(Collectors.toList());
+                }
         );
     }
 
