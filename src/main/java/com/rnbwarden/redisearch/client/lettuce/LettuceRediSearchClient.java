@@ -270,11 +270,14 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         aggregateOptionsBuilder.load(SERIALIZED_DOCUMENT);
 
         AggregateOptions aggregateOptions = aggregateOptionsBuilder.build();
-        CursorOptions cursorOptions = CursorOptions.builder().maxIdle(300000L).build();
+        CursorOptions cursorOptions = CursorOptions.builder().build();
+
+        long pageSize = searchContext.getPageSize();
+        cursorOptions.setCount(pageSize);
 
         return execute(connection -> {
             AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, aggregateOptions, cursorOptions);
-            return new LettucePagingCursorSearchResults<>(aggregateResults, this);
+            return new LettucePagingCursorSearchResults<>(aggregateResults, pageSize, this);
         });
     }
 
@@ -287,11 +290,15 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         }
     }
 
-    AggregateWithCursorResults<String, Object> readCursor(Long cursor) {
+    AggregateWithCursorResults<String, Object> readCursor(Long cursor, long count) {
 
         return execute(connection -> {
             try {
-                return connection.sync().cursorRead(index, cursor);
+                if (count > 0) {
+                    return connection.sync().cursorRead(index, cursor, count);
+                } else {
+                    return connection.sync().cursorRead(index, cursor);
+                }
             } catch (RedisCommandExecutionException redisCommandExecutionException) {
                 if ("Cursor not found".equalsIgnoreCase(redisCommandExecutionException.getMessage())) {
                     return null;

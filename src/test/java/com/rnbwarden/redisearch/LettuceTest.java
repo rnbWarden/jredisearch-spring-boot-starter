@@ -158,9 +158,10 @@ public class LettuceTest {
         context.addField(lettuceRediSearchClient.getField(COLUMN1), "value1");
         context.setSortBy(COLUMN1);
 //        context.setUseClientSidePaging(false);
+        context.setPageSize(50);
 
         PageableSearchResults<StubEntity> pageableSearchResults = lettuceRediSearchClient.search(context);
-        pageableSearchResults.getResultStream(true)
+        pageableSearchResults.getResultStream(/*true*/)
 //        pageableSearchResults.getResultStream()
                 .forEach(searchResult -> {
                     synchronized (this) {

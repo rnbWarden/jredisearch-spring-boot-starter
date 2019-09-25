@@ -8,4 +8,5 @@ import lombok.EqualsAndHashCode;
 public class PagingSearchContext extends SearchContext {
 
     private boolean useClientSidePaging = false;
+    private long pageSize = 1000;
 }

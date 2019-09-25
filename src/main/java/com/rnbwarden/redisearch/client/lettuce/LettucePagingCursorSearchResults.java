@@ -24,11 +24,12 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
     private final ResultsIterator iterator;
 
     LettucePagingCursorSearchResults(AggregateWithCursorResults<String, Object> delegate,
+                                     long pageSize,
                                      LettuceRediSearchClient<E> lettuceRediSearchClient) {
 
         this.delegate = delegate;
         this.lettuceRediSearchClient = lettuceRediSearchClient;
-        this.iterator = new ResultsIterator(delegate);
+        this.iterator = new ResultsIterator(delegate, pageSize);
     }
 
     @Override
@@ -58,9 +59,11 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
         private volatile boolean hasNext;
         private volatile ConcurrentLinkedQueue<Map<String, Object>> results = new ConcurrentLinkedQueue<>();
         private final AtomicLong cursor = new AtomicLong();
+        private final long pageSize;
 
-        ResultsIterator(AggregateWithCursorResults<String, Object> delegate) {
+        ResultsIterator(AggregateWithCursorResults<String, Object> delegate, long pageSize) {
 
+            this.pageSize = pageSize;
             populateResultsFromAggregateResults(delegate);
         }
 
@@ -84,7 +87,7 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
                 return results.poll();
             }
             synchronized (lockObject) {
-                populateResultsFromAggregateResults(lettuceRediSearchClient.readCursor(cursor.get()));
+                populateResultsFromAggregateResults(lettuceRediSearchClient.readCursor(cursor.get(), pageSize));
                 hasNext = !results.isEmpty();
             }
             return results.poll();
