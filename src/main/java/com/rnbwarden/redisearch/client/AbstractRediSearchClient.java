@@ -139,6 +139,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         return fields.values().stream().collect(Collectors.toUnmodifiableList());
     }
 
+    @Override
     public SearchableField<E> getField(String name) {
 
         return Optional.ofNullable(fields.get(name))

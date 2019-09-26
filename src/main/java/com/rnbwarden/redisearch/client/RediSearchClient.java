@@ -3,6 +3,7 @@ package com.rnbwarden.redisearch.client;
 import com.rnbwarden.redisearch.client.context.PagingSearchContext;
 import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
+import com.rnbwarden.redisearch.entity.SearchableField;
 
 import java.util.Collection;
 import java.util.List;
@@ -10,6 +11,8 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface RediSearchClient<E extends RedisSearchableEntity> {
+
+    SearchableField<E> getField(String name);
 
     void recreateIndex();
     void dropIndex();

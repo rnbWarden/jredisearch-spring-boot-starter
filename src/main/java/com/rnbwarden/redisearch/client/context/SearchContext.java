@@ -9,9 +9,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Data
 @Builder
@@ -43,9 +44,19 @@ public class SearchContext {
         queryFields.add(new QueryField(field, value));
     }
 
+    public void addField(SearchableField field, String... values) {
+
+        addField(field, SearchOperator.INTERSECTION, Stream.of(values).collect(Collectors.toList()));
+    }
+
+    public void addField(SearchableField field, Collection<String> values) {
+
+        addField(field, SearchOperator.INTERSECTION, values);
+    }
+
     public void addField(SearchableField field, SearchOperator operator, String... values) {
 
-        queryFields.add(new QueryField(field, Arrays.asList(values), operator));
+        addField(field, operator, Stream.of(values).collect(Collectors.toList()));
     }
 
     public void addField(SearchableField field, SearchOperator operator, Collection<String> values) {
