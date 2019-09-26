@@ -46,12 +46,12 @@ public class SearchContext {
 
     public void addField(SearchableField field, String... values) {
 
-        addField(field, SearchOperator.INTERSECTION, Stream.of(values).collect(Collectors.toList()));
+        addField(field, Stream.of(values).collect(Collectors.toList()));
     }
 
     public void addField(SearchableField field, Collection<String> values) {
 
-        addField(field, SearchOperator.INTERSECTION, values);
+        addField(field, SearchOperator.UNION, values);
     }
 
     public void addField(SearchableField field, SearchOperator operator, String... values) {
