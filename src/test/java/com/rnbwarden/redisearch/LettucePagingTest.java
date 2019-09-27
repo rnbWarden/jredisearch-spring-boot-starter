@@ -4,6 +4,10 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
+import com.redislabs.lettusearch.StatefulRediSearchConnection;
+import com.redislabs.lettusearch.aggregate.AggregateOptions;
+import com.redislabs.lettusearch.aggregate.AggregateWithCursorResults;
+import com.redislabs.lettusearch.aggregate.CursorOptions;
 import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
 import com.rnbwarden.redisearch.client.context.PagingSearchContext;
@@ -21,6 +25,7 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 
 @Ignore // un-ignore to test with local redis (with Search) module
@@ -30,6 +35,8 @@ public class LettucePagingTest {
 
     private static final String DEFAULT_BRAND = "DND";
     private static final int streamSize = 135726;
+    private RediSearchClient rediSearchClient;
+    private RedisCodec redisCodec;
     private LettuceRediSearchClient<StubSkuEntity> lettuceRediSearchClient;
     private int keySize;
 
@@ -43,9 +50,9 @@ public class LettucePagingTest {
         ObjectMapper objectMapper = new ObjectMapper();
 
         RedisSerializer<?> redisSerializer = new CompressingJacksonSerializer<>(clazz, objectMapper);
-        RedisCodec redisCodec = new RediSearchLettuceClientAutoConfiguration.LettuceRedisCodec();
+        redisCodec = new RediSearchLettuceClientAutoConfiguration.LettuceRedisCodec();
 
-        RediSearchClient rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
+        rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
         lettuceRediSearchClient = new LettuceRediSearchClient(clazz, rediSearchClient, redisCodec, redisSerializer, 1000L);
 
         lettuceRediSearchClient.recreateIndex();
@@ -94,6 +101,47 @@ public class LettucePagingTest {
 
         System.out.println("FINISHED with " + allResults.size() + " results"
                 + " - total count = " + pageableSearchResults.getTotalResults()
+                + " - " + new Date(System.currentTimeMillis()).toString());
+
+//        assertEquals(pageableSearchResults.getTotalResults(), allResults.size(), 0);
+        assertEquals(keySize, allResults.size(), 0);
+    }
+
+    @Test
+    public void multiTest() throws InterruptedException {
+
+        AggregateOptions aggregateOptions = AggregateOptions.builder()
+                .operation(com.redislabs.lettusearch.aggregate.Limit.builder().num(Integer.MAX_VALUE).offset(0).build())
+                .load("sdoc")
+                .build();
+        CursorOptions cursorOptions = CursorOptions.builder().count(100L).build();
+
+        StatefulRediSearchConnection<String, Object> connection = rediSearchClient.connect(redisCodec);
+
+        Collection<String> allResults = new ConcurrentLinkedQueue<>();
+        new Thread(() -> {
+            AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate("sku", "*", aggregateOptions, cursorOptions);
+            aggregateResults.forEach(r -> allResults.add("result found"));
+            do {
+                aggregateResults = connection.sync().cursorRead("sku", aggregateResults.getCursor());
+                aggregateResults.forEach(r -> allResults.add("result found"));
+                System.out.println("found results:" + allResults.size());
+                try {
+                    sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } while (aggregateResults.size() > 0);
+        }).start();
+
+        sleep(7500);
+        System.out.println("issuing second request...");
+        connection.sync().aggregate("sku", "*", aggregateOptions, cursorOptions);
+
+        sleep(30000);
+
+        System.out.println("FINISHED with " + allResults.size() + " results"
+                + " - total count = " + allResults.size()
                 + " - " + new Date(System.currentTimeMillis()).toString());
 
 //        assertEquals(pageableSearchResults.getTotalResults(), allResults.size(), 0);
