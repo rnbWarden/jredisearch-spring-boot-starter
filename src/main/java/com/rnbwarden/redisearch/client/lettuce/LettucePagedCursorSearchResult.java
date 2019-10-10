@@ -3,7 +3,6 @@ package com.rnbwarden.redisearch.client.lettuce;
 import com.rnbwarden.redisearch.client.PagedSearchResult;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 
-import java.util.Map;
 import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
@@ -12,9 +11,9 @@ public class LettucePagedCursorSearchResult<E extends RedisSearchableEntity> imp
 
     private final E entity;
 
-    LettucePagedCursorSearchResult(Map<String, Object> fields, LettuceRediSearchClient<E> lettuceRediSearchClient) {
+    LettucePagedCursorSearchResult(E entity) {
 
-        this.entity = lettuceRediSearchClient.deserialize(fields);
+        this.entity = entity;
     }
 
     public String getKey() {

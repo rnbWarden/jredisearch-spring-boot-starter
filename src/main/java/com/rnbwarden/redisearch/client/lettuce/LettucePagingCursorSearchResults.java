@@ -4,12 +4,14 @@ import com.redislabs.lettusearch.aggregate.AggregateWithCursorResults;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
 import com.rnbwarden.redisearch.client.PagedSearchResult;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -17,25 +19,29 @@ import static java.util.Optional.ofNullable;
 
 public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> implements PageableSearchResults<E> {
 
-    private static final Logger LOGGER = Logger.getLogger(LettucePagingCursorSearchResults.class.getName());
+    private final Logger logger = LoggerFactory.getLogger(LettucePagingCursorSearchResults.class.getName());
 
-    private final AggregateWithCursorResults<String, Object> delegate;
-    private final LettuceRediSearchClient<E> lettuceRediSearchClient;
+    private AggregateWithCursorResults<String, Object> delegate;
+    private final Supplier<AggregateWithCursorResults<String, Object>> nextPageSupplier;
+    private final Function<Map<String, Object>, E> deserializeFunction;
+    private final Closeable closeable;
     private final ResultsIterator iterator;
 
     LettucePagingCursorSearchResults(AggregateWithCursorResults<String, Object> delegate,
-                                     long pageSize,
-                                     LettuceRediSearchClient<E> lettuceRediSearchClient) {
+                                     Supplier<AggregateWithCursorResults<String, Object>> nextPageSupplier,
+                                     Function<Map<String, Object>, E> deserializeFunction,
+                                     Closeable closeable) {
 
-        this.delegate = delegate;
-        this.lettuceRediSearchClient = lettuceRediSearchClient;
-        this.iterator = new ResultsIterator(delegate, pageSize);
+        this.nextPageSupplier = nextPageSupplier;
+        this.deserializeFunction = deserializeFunction;
+        this.closeable = closeable;
+        this.iterator = new ResultsIterator(delegate);
     }
 
     @Override
     public Long getTotalResults() {
 
-        return delegate.getCount();
+        return ofNullable(delegate).map(AggregateWithCursorResults::getCount).orElse(0L);
     }
 
     @Override
@@ -44,32 +50,39 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
         return StreamSupport.stream(Spliterators.spliterator(iterator, getTotalResults(),
                 Spliterator.NONNULL | Spliterator.CONCURRENT | Spliterator.DISTINCT), useParallel)
                 .filter(Objects::nonNull)
-                .onClose(iterator::close)
+                .onClose(this::close)
                 .map(this::createSearchResult);
+    }
+
+    private void close() {
+
+        try {
+            closeable.close();
+        } catch (Exception e) {
+            logger.warn("Error closing PagingCursorSearchResults {}", e.getMessage(), e);
+        }
     }
 
     private PagedSearchResult<E> createSearchResult(Map<String, Object> fields) {
 
-        return new LettucePagedCursorSearchResult<>(fields, lettuceRediSearchClient);
+        E entity = deserializeFunction.apply(fields);
+        return new LettucePagedCursorSearchResult<>(entity);
     }
 
-    class ResultsIterator implements Iterator<Map<String, Object>>, Closeable {
+    class ResultsIterator implements Iterator<Map<String, Object>> {
 
         private final Object lockObject = new Object();
         private volatile boolean hasNext;
         private volatile ConcurrentLinkedQueue<Map<String, Object>> results = new ConcurrentLinkedQueue<>();
-        private final AtomicLong cursor = new AtomicLong();
-        private final long pageSize;
 
-        ResultsIterator(AggregateWithCursorResults<String, Object> delegate, long pageSize) {
+        ResultsIterator(AggregateWithCursorResults<String, Object> delegate) {
 
-            this.pageSize = pageSize;
             populateResultsFromAggregateResults(delegate);
         }
 
         private void populateResultsFromAggregateResults(AggregateWithCursorResults<String, Object> delegate) {
 
-            ofNullable(delegate).map(AggregateWithCursorResults::getCursor).ifPresent(cursor::set);
+            LettucePagingCursorSearchResults.this.delegate = delegate;
             ofNullable(delegate).ifPresent(this.results::addAll);
             hasNext = !results.isEmpty();
         }
@@ -87,20 +100,10 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
                 return results.poll();
             }
             synchronized (lockObject) {
-                populateResultsFromAggregateResults(lettuceRediSearchClient.readCursor(cursor.get(), pageSize));
+                populateResultsFromAggregateResults(nextPageSupplier.get());
                 hasNext = !results.isEmpty();
             }
             return results.poll();
-        }
-
-        @Override
-        public void close() {
-
-            try {
-                lettuceRediSearchClient.closeCursor(cursor.get());
-            } catch (Exception e) {
-                LOGGER.warning(() -> "Error closing RediSearch connection. " + e.getMessage());
-            }
         }
     }
 }
