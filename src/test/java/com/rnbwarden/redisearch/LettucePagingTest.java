@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 
-@Ignore // un-ignore to test with local redis (with Search) module
+@Ignore// un-ignore to test with local redis (with Search) module
 public class LettucePagingTest {
 
     private static final Logger LOGGER = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
@@ -38,7 +38,7 @@ public class LettucePagingTest {
     private RediSearchClient rediSearchClient;
     private RedisCodec redisCodec;
     private LettuceRediSearchClient<StubSkuEntity> lettuceRediSearchClient;
-    private int keySize = 135725;//135721
+    private int keySize = 135724;//135721
 
     @Before
     @SuppressWarnings("unchecked")
@@ -68,13 +68,16 @@ public class LettucePagingTest {
 
     private void insertTestData() {
 
-        Set<String> allKeys = new HashSet<>();
-        (new Random()).ints(streamSize).forEach(random -> {
+        Map<String, StubSkuEntity> skus = new HashMap<>();
+        (new Random()).ints(streamSize).parallel().forEach(random -> {
             String key = "key" + random;
-            allKeys.add(key);
-            lettuceRediSearchClient.save(new StubSkuEntity(key, DEFAULT_BRAND));
+            StubSkuEntity entity = new StubSkuEntity(key, DEFAULT_BRAND);
+            lettuceRediSearchClient.save(entity);
+            synchronized (this) {
+                skus.put(entity.getKey(), entity);
+            }
         });
-        keySize = allKeys.size();
+        keySize = skus.keySet().size();
         LOGGER.info("key size = " + keySize);
 //        try {
 //            Thread.sleep(5000);
@@ -124,29 +127,73 @@ public class LettucePagingTest {
             AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate("sku", "*", aggregateOptions, cursorOptions);
             aggregateResults.forEach(r -> allResults.add("result found"));
             do {
+                System.out.println("found results:" + allResults.size());
 //                aggregateResults = connection.sync().cursorRead("sku", aggregateResults.getCursor());    // works
                 aggregateResults = conn.sync().cursorRead("sku", aggregateResults.getCursor());      // fails
                 aggregateResults.forEach(r -> allResults.add("result found"));
-                System.out.println("found results:" + allResults.size());
-                try {
-                    sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            } while (aggregateResults.size() > 0);
-        }).start();
+            } while (aggregateResults.size() == 1000);
+//        });
+//        thread.start();
 
-        sleep(7500);
-        System.out.println("issuing second request...");
-        connection.sync().aggregate("sku", "*", aggregateOptions, cursorOptions);
+/**
+ //Now that the cursor paging is started, wait briefly and then issue some additional commands
+ sleep(1000);
+ System.out.println("issuing additional requests...");
+ //        IntStream.range(0, 4).mapToObj(i -> String.format("key-%s-test", i)).forEach(key -> {
+ //            lettuceRediSearchClient.save(new StubSkuEntity(key, DEFAULT_BRAND));
+ //        });
+ IntStream.range(0, 4).mapToObj(i -> String.format("key-%s-test", i)).forEach(key -> {
+ lettuceRediSearchClient.delete(key);
+ });
 
-        sleep(30000);
+ while (thread.isAlive()) {
+ sleep(1000);
+ }
+ */
+        System.out.println("FINISHED with " + allResults.size() + " results" + " - total count = " + allResults.size() + " - " + new Date(System.currentTimeMillis()).toString());
+        assertEquals(keySize, allResults.size(), 0);
 
+        multiTest();
+    }
+
+    @Test
+    public void multiTestStarter() throws InterruptedException {
+
+        PagingSearchContext context = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(StubSkuEntity.BRAND, DEFAULT_BRAND));
+//        context.setSortBy(StubSkuEntity.KEY);
+
+        Set<String> allResults = new LinkedHashSet<>();
+
+        Thread thread = new Thread(() -> {
+            PageableSearchResults<StubSkuEntity> pageableSearchResults = lettuceRediSearchClient.findAll(context);//findAll(Integer.MAX_VALUE);//search(context);
+            pageableSearchResults.getResultStream(true) //.getResultStream(false)
+                    .forEach(searchResult -> {
+                        allResults.add(searchResult.getKey());
+                        searchResult.getResult().orElseThrow(AssertionError::new);
+                        if (allResults.size() % 1000 == 0) {
+                            LOGGER.info("Done with " + allResults.size() + " - " + new Date(System.currentTimeMillis()).toString());
+                        }
+                    });
+        });
+        thread.start();
+
+        sleep(1500);
+        System.out.println("issuing additional requests...");
+        lettuceRediSearchClient.delete("key-0-test");
+//        lettuceRediSearchClient.save(new StubSkuEntity("key-0-test", DEFAULT_BRAND));
+//        lettuceRediSearchClient.delete("key-0-test");
+//        PageableSearchResults<StubSkuEntity> secondSearchResults = lettuceRediSearchClient.findAll(context);
+//        lettuceRediSearchClient.findAll(Integer.MAX_VALUE);
+        System.out.println("finished issuing additional requests...");
+
+        while (thread.isAlive()) {
+            sleep(1000);
+        }
         System.out.println("FINISHED with " + allResults.size() + " results"
                 + " - total count = " + allResults.size()
                 + " - " + new Date(System.currentTimeMillis()).toString());
 
-//        assertEquals(pageableSearchResults.getTotalResults(), allResults.size(), 0);
         assertEquals(keySize, allResults.size(), 0);
+        multiTestStarter();
     }
 }
