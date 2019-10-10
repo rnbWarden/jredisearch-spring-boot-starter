@@ -38,7 +38,7 @@ public class LettucePagingTest {
     private RediSearchClient rediSearchClient;
     private RedisCodec redisCodec;
     private LettuceRediSearchClient<StubSkuEntity> lettuceRediSearchClient;
-    private int keySize;
+    private int keySize = 135725;//135721
 
     @Before
     @SuppressWarnings("unchecked")
@@ -52,7 +52,8 @@ public class LettucePagingTest {
         RedisSerializer<?> redisSerializer = new CompressingJacksonSerializer<>(clazz, objectMapper);
         redisCodec = new RediSearchLettuceClientAutoConfiguration.LettuceRedisCodec();
 
-        rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
+//        rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
+        rediSearchClient = RediSearchClient.create(RedisURI.create("redis-12764.redisnp.corp.pgcore.com", 12764));
         lettuceRediSearchClient = new LettuceRediSearchClient(clazz, rediSearchClient, redisCodec, redisSerializer, 1000L);
 
         lettuceRediSearchClient.recreateIndex();
@@ -114,16 +115,17 @@ public class LettucePagingTest {
                 .operation(com.redislabs.lettusearch.aggregate.Limit.builder().num(Integer.MAX_VALUE).offset(0).build())
                 .load("sdoc")
                 .build();
-        CursorOptions cursorOptions = CursorOptions.builder().count(100L).build();
-
-        StatefulRediSearchConnection<String, Object> connection = rediSearchClient.connect(redisCodec);
+        CursorOptions cursorOptions = CursorOptions.builder().count(1000L).build();
 
         Collection<String> allResults = new ConcurrentLinkedQueue<>();
-        new Thread(() -> {
+//        Thread thread = new Thread(() -> {
+        StatefulRediSearchConnection<String, Object> conn = rediSearchClient.connect(redisCodec);
+        StatefulRediSearchConnection<String, Object> connection = rediSearchClient.connect(redisCodec);
             AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate("sku", "*", aggregateOptions, cursorOptions);
             aggregateResults.forEach(r -> allResults.add("result found"));
             do {
-                aggregateResults = connection.sync().cursorRead("sku", aggregateResults.getCursor());
+//                aggregateResults = connection.sync().cursorRead("sku", aggregateResults.getCursor());    // works
+                aggregateResults = conn.sync().cursorRead("sku", aggregateResults.getCursor());      // fails
                 aggregateResults.forEach(r -> allResults.add("result found"));
                 System.out.println("found results:" + allResults.size());
                 try {
