@@ -23,6 +23,7 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.redislabs.lettusearch.search.Direction.Ascending;
@@ -34,7 +35,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private com.redislabs.lettusearch.RediSearchClient rediSearchClient;
-    private final RedisCodec<String, Object> redisCodec;
+    private final Supplier<StatefulRediSearchConnection<String, Object>> connectionSupplier;
     private final GenericObjectPool<StatefulRediSearchConnection<String, Object>> pool;
 
     public LettuceRediSearchClient(Class<E> clazz,
@@ -45,8 +46,8 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         super(clazz, redisSerializer, defaultMaxResults);
         this.rediSearchClient = rediSearchClient;
-        this.redisCodec = redisCodec;
-        pool = ConnectionPoolSupport.createGenericObjectPool(() -> rediSearchClient.connect(redisCodec), new GenericObjectPoolConfig());
+        this.connectionSupplier = () -> rediSearchClient.connect(redisCodec);
+        this.pool = ConnectionPoolSupport.createGenericObjectPool(connectionSupplier, new GenericObjectPoolConfig());
         checkAndCreateIndex();
     }
 
@@ -263,7 +264,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         AggregateOptions aggregateOptions = aggregateOptionsBuilder.build();
         CursorOptions cursorOptions = CursorOptions.builder().count(searchContext.getPageSize()).build();
 
-        StatefulRediSearchConnection<String, Object> connection = rediSearchClient.connect(redisCodec);
+        StatefulRediSearchConnection<String, Object> connection = connectionSupplier.get();
         try {
             AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, aggregateOptions, cursorOptions);
             return new LettucePagingCursorSearchResults<>(aggregateResults,
