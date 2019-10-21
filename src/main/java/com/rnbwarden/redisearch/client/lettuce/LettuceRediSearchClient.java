@@ -270,7 +270,8 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
             return new LettucePagingCursorSearchResults<>(aggregateResults,
                     () -> readCursor(aggregateResults.getCursor(), connection),
                     this::deserialize,
-                    () -> closeCursor(connection, aggregateResults.getCursor()));
+                    () -> closeCursor(connection, aggregateResults.getCursor()),
+                    null);
         } catch (Exception e) {
             close(connection);
             throw (e);

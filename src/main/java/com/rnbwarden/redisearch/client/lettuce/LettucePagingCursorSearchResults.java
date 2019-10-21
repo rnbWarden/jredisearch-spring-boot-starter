@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -26,16 +27,19 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
     private final Function<Map<String, Object>, E> deserializeFunction;
     private final Closeable closeable;
     private final ResultsIterator iterator;
+    private final Consumer<Exception> exceptionConsumer;
 
     LettucePagingCursorSearchResults(AggregateWithCursorResults<String, Object> delegate,
                                      Supplier<AggregateWithCursorResults<String, Object>> nextPageSupplier,
                                      Function<Map<String, Object>, E> deserializeFunction,
-                                     Closeable closeable) {
+                                     Closeable closeable,
+                                     Consumer<Exception> exceptionConsumer) {
 
         this.nextPageSupplier = nextPageSupplier;
         this.deserializeFunction = deserializeFunction;
         this.closeable = closeable;
         this.iterator = new ResultsIterator(delegate);
+        this.exceptionConsumer = exceptionConsumer;
     }
 
     @Override
@@ -51,7 +55,8 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
                 Spliterator.NONNULL | Spliterator.CONCURRENT | Spliterator.DISTINCT), useParallel)
                 .filter(Objects::nonNull)
                 .onClose(this::close)
-                .map(this::createSearchResult);
+                .map(this::createSearchResult)
+                .filter(Objects::nonNull);
     }
 
     private void close() {
@@ -65,8 +70,17 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
 
     private PagedSearchResult<E> createSearchResult(Map<String, Object> fields) {
 
-        E entity = deserializeFunction.apply(fields);
-        return new LettucePagedCursorSearchResult<>(entity);
+        try {
+
+            E entity = deserializeFunction.apply(fields);
+            return new LettucePagedCursorSearchResult<>(entity);
+        } catch (Exception e) {
+            if (exceptionConsumer != null) {
+                exceptionConsumer.accept(e);
+                return null;
+            }
+            throw e;
+        }
     }
 
     class ResultsIterator implements Iterator<Map<String, Object>> {
