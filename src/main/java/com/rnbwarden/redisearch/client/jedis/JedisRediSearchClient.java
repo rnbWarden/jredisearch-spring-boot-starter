@@ -181,7 +181,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     @Override
     public PageableSearchResults<E> search(PagingSearchContext pagingSearchContext) {
 
-        return performTimedOperation("search", () -> performPagedJedisSearch(buildQuery(pagingSearchContext)));
+        return performTimedOperation("search", () -> performPagedJedisSearch(buildQuery(pagingSearchContext), pagingSearchContext));
     }
 
     @Override
@@ -194,13 +194,13 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         return performTimedOperation("search", () -> {
             Query query = new Query(queryString);
             configureQueryOptions(pagingSearchContext, query);
-            return performPagedJedisSearch(query);
+            return performPagedJedisSearch(query, pagingSearchContext);
         });
     }
 
-    private JedisPagingSearchResults<E> performPagedJedisSearch(Query query) {
+    private JedisPagingSearchResults<E> performPagedJedisSearch(Query query, PagingSearchContext pagingSearchContext) {
 
-        return new JedisPagingSearchResults<>(performJedisSearch(query), this);
+        return new JedisPagingSearchResults<>(performJedisSearch(query), this, pagingSearchContext.getExceptionHandler());
     }
 
 /**

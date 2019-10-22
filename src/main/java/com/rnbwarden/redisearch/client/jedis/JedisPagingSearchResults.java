@@ -3,20 +3,25 @@ package com.rnbwarden.redisearch.client.jedis;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
 import com.rnbwarden.redisearch.client.PagedSearchResult;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
+import io.redisearch.SearchResult;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class JedisPagingSearchResults<E extends RedisSearchableEntity> implements PageableSearchResults<E> {
 
     private final io.redisearch.SearchResult delegate;
     private final JedisRediSearchClient<E> jedisRediSearchClient;
+    private final Consumer<Exception> exceptionHandler;
 
-    JedisPagingSearchResults(io.redisearch.SearchResult delegate,
-                             JedisRediSearchClient<E> jedisRediSearchClient) {
+    JedisPagingSearchResults(SearchResult delegate,
+                             JedisRediSearchClient<E> jedisRediSearchClient,
+                             Consumer<Exception> exceptionHandler) {
 
         this.delegate = delegate;
         this.jedisRediSearchClient = jedisRediSearchClient;
+        this.exceptionHandler = exceptionHandler;
     }
 
     @Override
@@ -35,6 +40,6 @@ public class JedisPagingSearchResults<E extends RedisSearchableEntity> implement
 
     private PagedSearchResult<E> createSearchResult(io.redisearch.Document document) {
 
-        return new JedisPagedSearchResult<>(document.getId(), jedisRediSearchClient);
+        return new JedisPagedSearchResult<>(document.getId(), jedisRediSearchClient, exceptionHandler);
     }
 }

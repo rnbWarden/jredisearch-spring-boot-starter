@@ -31,7 +31,9 @@ public class LettucePagedSearchResult<E extends RedisSearchableEntity> implement
         try {
             return lettuceRediSearchClient.findByQualifiedKey(key);
         } catch (Exception e) {
-            exceptionConsumer.accept(e);
+            if (exceptionConsumer != null) {
+                exceptionConsumer.accept(e);
+            }
             return Optional.empty();
         }
     }
