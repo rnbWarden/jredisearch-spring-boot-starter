@@ -245,7 +245,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
             SearchOptions lettusearchOptions = configureQueryOptions(pagingSearchContext);
             SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, lettusearchOptions);
             logger.debug("found count {}", searchResults.getCount());
-            return new LettucePagingSearchResults<>(searchResults, this);
+            return new LettucePagingSearchResults<>(searchResults, this, pagingSearchContext.getExceptionHandler());
         });
     }
 
