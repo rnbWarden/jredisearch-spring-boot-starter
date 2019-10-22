@@ -271,7 +271,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
                     () -> readCursor(aggregateResults.getCursor(), connection),
                     this::deserialize,
                     () -> closeCursor(connection, aggregateResults.getCursor()),
-                    null);
+                    searchContext.getExceptionHandler());
         } catch (Exception e) {
             close(connection);
             throw (e);

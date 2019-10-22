@@ -40,9 +40,9 @@ configurations.all {
 }
 dependencies {
 
-    compileOnly 'org.springframework.boot:spring-boot-autoconfigure:2.2.0.RC1'
-    compileOnly 'org.springframework.boot:spring-boot-dependencies:2.2.0.RC1'
-    compileOnly 'org.springframework.boot:spring-boot:2.2.0.RC1'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure:2.2.0.RELEASE'
+    compileOnly 'org.springframework.boot:spring-boot-dependencies:2.2.0.RELEASE'
+    compileOnly 'org.springframework.boot:spring-boot:2.2.0.RELEASE'
 
     compile 'org.apache.commons:commons-lang3:3.9'
     compile 'org.apache.commons:commons-pool2:2.7.0'
@@ -65,7 +65,7 @@ dependencies {
         exclude group: 'com.redislabs', module: 'lettusearch'
     }
 
-    testCompile 'org.springframework.boot:spring-boot-starter-test:2.2.0.RC1'
+    testCompile 'org.springframework.boot:spring-boot-starter-test:2.2.0.RELEASE'
     testCompile 'junit:junit:4.12'
     testCompile 'org.mockito:mockito-core:3.1.0'
 }
