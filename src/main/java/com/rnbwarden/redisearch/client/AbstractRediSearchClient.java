@@ -13,6 +13,7 @@ import org.springframework.util.StopWatch;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -174,6 +175,14 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
             SearchResults<E> searchResults = search(ALL_QUERY, searchContext);
             return searchResults.getTotalResults();
         });
+    }
+
+    @Override
+    public Long getKeyCount(PagingSearchContext pagingSearchContext) {
+
+        AtomicLong count = new AtomicLong();
+        search(pagingSearchContext).getResultStream().forEach(r -> count.incrementAndGet());
+        return count.get();
     }
 
     @Override

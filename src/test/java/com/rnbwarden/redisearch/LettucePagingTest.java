@@ -38,7 +38,7 @@ public class LettucePagingTest {
     private RediSearchClient rediSearchClient;
     private RedisCodec redisCodec;
     private LettuceRediSearchClient<StubSkuEntity> lettuceRediSearchClient;
-    private int keySize = 135724;//135721
+    private int keySize = 135722;
 
     @Before
     @SuppressWarnings("unchecked")
@@ -201,6 +201,15 @@ public class LettucePagingTest {
     public void testKeyCount() {
 
         Long keyCount = lettuceRediSearchClient.getKeyCount();
+        assertEquals(keySize, keyCount, 0);
+    }
+
+    @Test
+    public void testKeyCountPagingSearchContext() {
+
+        PagingSearchContext pagingSearchContext = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(StubSkuEntity.BRAND, DEFAULT_BRAND));
+        pagingSearchContext.setPageSize(100000L);
+        Long keyCount = lettuceRediSearchClient.getKeyCount(pagingSearchContext);
         assertEquals(keySize, keyCount, 0);
     }
 }

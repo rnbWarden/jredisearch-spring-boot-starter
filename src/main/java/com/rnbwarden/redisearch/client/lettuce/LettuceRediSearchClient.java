@@ -124,11 +124,23 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     @Override
     public Long getKeyCount() {
 
+        return getKeyCount(ALL_QUERY, 10000L);
+    }
+
+    @Override
+    public Long getKeyCount(PagingSearchContext pagingSearchContext) {
+
+        String queryString = buildQueryString(pagingSearchContext);
+        return getKeyCount(queryString, pagingSearchContext.getPageSize());
+    }
+
+    private Long getKeyCount(String queryString, long pageSize) {
+
         AggregateOptions aggregateOptions = AggregateOptions.builder().build();
-        CursorOptions cursorOptions = CursorOptions.builder().count(10000L).build();
+        CursorOptions cursorOptions = CursorOptions.builder().count(pageSize).build();
         long count;
         try (StatefulRediSearchConnection<String, Object> connection = connectionSupplier.get()) {
-            AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, ALL_QUERY, aggregateOptions, cursorOptions);
+            AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, aggregateOptions, cursorOptions);
             count = aggregateResults.size();
             while (aggregateResults.getCursor() != 0) {
                 aggregateResults = readCursor(aggregateResults.getCursor(), connection);

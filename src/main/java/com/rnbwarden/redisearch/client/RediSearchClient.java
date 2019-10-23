@@ -18,6 +18,8 @@ public interface RediSearchClient<E extends RedisSearchableEntity> {
     void dropIndex();
     Long getKeyCount();
 
+    Long getKeyCount(PagingSearchContext pagingSearchContext);
+
     void save(E entity);
     void delete(String key);
 
