@@ -122,6 +122,23 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     }
 
     @Override
+    public Long getKeyCount() {
+
+        AggregateOptions aggregateOptions = AggregateOptions.builder().build();
+        CursorOptions cursorOptions = CursorOptions.builder().count(10000L).build();
+        long count;
+        try (StatefulRediSearchConnection<String, Object> connection = connectionSupplier.get()) {
+            AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, ALL_QUERY, aggregateOptions, cursorOptions);
+            count = aggregateResults.size();
+            while (aggregateResults.getCursor() != 0) {
+                aggregateResults = readCursor(aggregateResults.getCursor(), connection);
+                count += aggregateResults.size();
+            }
+        }
+        return count;
+    }
+
+    @Override
     public void save(E entity) {
 
         Map<String, Object> fields = serialize(entity);
@@ -289,15 +306,19 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     private AggregateWithCursorResults<String, Object> readCursor(Long cursor, StatefulRediSearchConnection<String, Object> connection) {
 
-            try {
-                return connection.sync().cursorRead(index, cursor);
-            } catch (RedisCommandExecutionException redisCommandExecutionException) {
-                closeCursor(connection, cursor);
-                if ("Cursor not found".equalsIgnoreCase(redisCommandExecutionException.getMessage())) {
-                    return null;
-                }
-                throw (redisCommandExecutionException);
+        if (cursor == 0) {
+            close(connection);
+            return null;
+        }
+        try {
+            return connection.sync().cursorRead(index, cursor);
+        } catch (RedisCommandExecutionException redisCommandExecutionException) {
+            closeCursor(connection, cursor);
+            if ("Cursor not found".equalsIgnoreCase(redisCommandExecutionException.getMessage())) {
+                return null;
             }
+            throw (redisCommandExecutionException);
+        }
     }
 
     private void closeCursor(StatefulRediSearchConnection<String, Object> connection, Long cursor) {

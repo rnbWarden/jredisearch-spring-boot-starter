@@ -52,8 +52,8 @@ public class LettucePagingTest {
         RedisSerializer<?> redisSerializer = new CompressingJacksonSerializer<>(clazz, objectMapper);
         redisCodec = new RediSearchLettuceClientAutoConfiguration.LettuceRedisCodec();
 
-//        rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
-        rediSearchClient = RediSearchClient.create(RedisURI.create("redis-12764.redisnp.corp.pgcore.com", 12764));
+        rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
+//        rediSearchClient = RediSearchClient.create(RedisURI.create("redis-12764.redisnp.corp.pgcore.com", 12764));
         lettuceRediSearchClient = new LettuceRediSearchClient(clazz, rediSearchClient, redisCodec, redisSerializer, 1000L);
 
         lettuceRediSearchClient.recreateIndex();
@@ -195,5 +195,12 @@ public class LettucePagingTest {
 
         assertEquals(keySize, allResults.size(), 0);
         multiTestStarter();
+    }
+
+    @Test
+    public void testKeyCount() {
+
+        Long keyCount = lettuceRediSearchClient.getKeyCount();
+        assertEquals(keySize, keyCount, 0);
     }
 }
