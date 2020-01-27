@@ -219,14 +219,13 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected com.rnbwarden.redisearch.client.SearchResults<E> search(String queryString, SearchContext searchContext) {
 
         return execute(connection -> {
             SearchOptions searchOptions = configureQueryOptions(searchContext);
             com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, searchOptions);
             logger.debug("found count {}", searchResults.getCount());
-            return new LettuceSearchResults(keyPrefix, searchResults);
+            return new LettuceSearchResults<>(keyPrefix, searchResults);
         });
     }
 
@@ -274,7 +273,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
             SearchOptions lettusearchOptions = configureQueryOptions(pagingSearchContext);
             SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, lettusearchOptions);
             logger.debug("found count {}", searchResults.getCount());
-            return new LettucePagingSearchResults<>(searchResults, this, pagingSearchContext.getExceptionHandler());
+            return new LettucePagingSearchResults<>(keyPrefix, searchResults, this, pagingSearchContext.getExceptionHandler());
         });
     }
 

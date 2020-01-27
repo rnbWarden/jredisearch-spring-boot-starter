@@ -14,11 +14,14 @@ public class LettucePagingSearchResults<E extends RedisSearchableEntity> impleme
     private final com.redislabs.lettusearch.search.SearchResults<String, Object> delegate;
     private final LettuceRediSearchClient<E> lettuceRediSearchClient;
     private final Consumer<Exception> exceptionConsumer;
+    private final String keyPrefix;
 
-    LettucePagingSearchResults(SearchResults<String, Object> delegate,
+    LettucePagingSearchResults(String keyPrefix,
+                               SearchResults<String, Object> delegate,
                                LettuceRediSearchClient<E> lettuceRediSearchClient,
                                Consumer<Exception> exceptionConsumer) {
 
+        this.keyPrefix = keyPrefix;
         this.delegate = delegate;
         this.lettuceRediSearchClient = lettuceRediSearchClient;
         this.exceptionConsumer = exceptionConsumer;
@@ -40,6 +43,6 @@ public class LettucePagingSearchResults<E extends RedisSearchableEntity> impleme
 
     private PagedSearchResult<E> createSearchResult(com.redislabs.lettusearch.search.SearchResult<String, Object> searchResult) {
 
-        return new LettucePagedSearchResult<>(searchResult.getDocumentId(), lettuceRediSearchClient, exceptionConsumer);
+        return new LettucePagedSearchResult<>(keyPrefix, searchResult.getDocumentId(), lettuceRediSearchClient, exceptionConsumer);
     }
 }

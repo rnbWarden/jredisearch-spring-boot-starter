@@ -12,11 +12,12 @@ public class LettucePagedSearchResult<E extends RedisSearchableEntity> implement
     private final LettuceRediSearchClient<E> lettuceRediSearchClient;
     private final Consumer<Exception> exceptionConsumer;
 
-    LettucePagedSearchResult(String key,
+    LettucePagedSearchResult(String keyPrefix,
+                             String key,
                              LettuceRediSearchClient<E> lettuceRediSearchClient,
                              Consumer<Exception> exceptionConsumer) {
 
-        this.key = key;
+        this.key = key.substring(keyPrefix.length());
         this.lettuceRediSearchClient = lettuceRediSearchClient;
         this.exceptionConsumer = exceptionConsumer;
     }
