@@ -23,7 +23,7 @@ public class LettuceSearchResults<E extends RedisSearchableEntity> implements Se
     @Override
     public Long getTotalResults() {
 
-        return delegate.getCount();
+        return delegate.count();
     }
 
     @Override

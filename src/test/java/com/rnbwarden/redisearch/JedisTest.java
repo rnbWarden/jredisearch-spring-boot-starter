@@ -52,7 +52,11 @@ public class JedisTest {
     @After
     public void tearDown() throws Exception {
 
-        jedisRediSearchClient.dropIndex();
+        try {
+            jedisRediSearchClient.dropIndex();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Test

@@ -31,7 +31,7 @@ public class LettuceSearchResult<K extends String, V> implements SearchResult<K,
     @SuppressWarnings("unchecked")
     public K getId() {
 
-        String documentId = delegate.getDocumentId();
+        String documentId = delegate.documentId();
         String key = documentId.substring(keyPrefix.length());
         return (K) key;
     }

@@ -1,6 +1,6 @@
 package com.rnbwarden.redisearch.autoconfiguration;
 
-import com.redislabs.springredisearch.RediSearchConfiguration;
+import com.redislabs.springredisearch.RediSearchAutoConfiguration;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.codec.ByteArrayCodec;
@@ -17,7 +17,7 @@ import java.nio.ByteBuffer;
 
 @Configuration("RediSearchLettuceClientAutoConfiguration")
 @ConditionalOnClass({RedisClient.class, com.redislabs.lettusearch.RediSearchClient.class})
-@Import(RediSearchConfiguration.class)
+@Import(RediSearchAutoConfiguration.class)
 public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
 
     @Autowired

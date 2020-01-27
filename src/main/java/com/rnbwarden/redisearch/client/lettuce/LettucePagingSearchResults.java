@@ -30,7 +30,7 @@ public class LettucePagingSearchResults<E extends RedisSearchableEntity> impleme
     @Override
     public Long getTotalResults() {
 
-        return delegate.getCount();
+        return delegate.count();
     }
 
     @Override
@@ -43,6 +43,6 @@ public class LettucePagingSearchResults<E extends RedisSearchableEntity> impleme
 
     private PagedSearchResult<E> createSearchResult(com.redislabs.lettusearch.search.SearchResult<String, Object> searchResult) {
 
-        return new LettucePagedSearchResult<>(keyPrefix, searchResult.getDocumentId(), lettuceRediSearchClient, exceptionConsumer);
+        return new LettucePagedSearchResult<>(keyPrefix, searchResult.documentId(), lettuceRediSearchClient, exceptionConsumer);
     }
 }

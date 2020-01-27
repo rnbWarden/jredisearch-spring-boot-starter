@@ -47,7 +47,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         super(clazz, redisSerializer, defaultMaxResults);
         this.rediSearchClient = rediSearchClient;
         this.connectionSupplier = () -> rediSearchClient.connect(redisCodec);
-        this.pool = ConnectionPoolSupport.createGenericObjectPool(connectionSupplier, new GenericObjectPoolConfig());
+        this.pool = ConnectionPoolSupport.createGenericObjectPool(connectionSupplier, new GenericObjectPoolConfig<>());
         checkAndCreateIndex();
     }
 
@@ -57,7 +57,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         StatefulRediSearchConnection<String, String> uncompressedConnection = null;
         try {
             uncompressedConnection = rediSearchClient.connect();
-            uncompressedConnection.sync().ftInfo(index);
+            uncompressedConnection.sync().indexInfo(index);
             alterSortableFields(uncompressedConnection);
         } catch (RedisCommandExecutionException ex) {
             if (uncompressedConnection == null) {
@@ -80,8 +80,8 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         getFields().stream()
                 .map(SearchableLettuceField::getField)
-                .filter(com.redislabs.lettusearch.search.field.Field::isSortable)
-                .map(com.redislabs.lettusearch.search.field.Field::getName)
+                .filter(com.redislabs.lettusearch.search.field.Field::sortable)
+                .map(com.redislabs.lettusearch.search.field.Field::name)
                 .forEach(fieldName -> connection.sync().alter(index, fieldName, FieldOptions.builder().sortable(true).build()));
     }
 
@@ -95,7 +95,6 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected SearchableLettuceField<E> createSearchableField(RediSearchFieldType type,
                                                               String name,
                                                               boolean sortable,
@@ -105,10 +104,10 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
             throw new IllegalArgumentException(format("Field name '%s' is not protected! Please use another name.", name));
         }
         if (type == RediSearchFieldType.TEXT) {
-            return new SearchableLettuceTextField(name, sortable, serializationFunction);
+            return new SearchableLettuceTextField<>(name, sortable, serializationFunction);
         }
         if (type == RediSearchFieldType.TAG) {
-            return new SearchableLettuceTagField(name, sortable, serializationFunction);
+            return new SearchableLettuceTagField<>(name, sortable, serializationFunction);
         }
         throw new IllegalArgumentException(format("field type '%s' is not supported", type));
     }
@@ -142,8 +141,8 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         try (StatefulRediSearchConnection<String, Object> connection = connectionSupplier.get()) {
             AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, aggregateOptions, cursorOptions);
             count = aggregateResults.size();
-            while (aggregateResults.getCursor() != 0) {
-                aggregateResults = readCursor(aggregateResults.getCursor(), connection);
+            while (aggregateResults.cursor() != 0) {
+                aggregateResults = readCursor(aggregateResults.cursor(), connection);
                 count += aggregateResults.size();
             }
         }
@@ -224,7 +223,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         return execute(connection -> {
             SearchOptions searchOptions = configureQueryOptions(searchContext);
             com.redislabs.lettusearch.search.SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, searchOptions);
-            logger.debug("found count {}", searchResults.getCount());
+            logger.debug("found count {}", searchResults.count());
             return new LettuceSearchResults<>(keyPrefix, searchResults);
         });
     }
@@ -272,7 +271,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         return execute(connection -> {
             SearchOptions lettusearchOptions = configureQueryOptions(pagingSearchContext);
             SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, lettusearchOptions);
-            logger.debug("found count {}", searchResults.getCount());
+            logger.debug("found count {}", searchResults.count());
             return new LettucePagingSearchResults<>(keyPrefix, searchResults, this, pagingSearchContext.getExceptionHandler());
         });
     }
@@ -296,9 +295,9 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         try {
             AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, aggregateOptions, cursorOptions);
             return new LettucePagingCursorSearchResults<>(aggregateResults,
-                    () -> readCursor(aggregateResults.getCursor(), connection),
+                    () -> readCursor(aggregateResults.cursor(), connection),
                     this::deserialize,
-                    () -> closeCursor(connection, aggregateResults.getCursor()),
+                    () -> closeCursor(connection, aggregateResults.cursor()),
                     searchContext.getExceptionHandler());
         } catch (Exception e) {
             close(connection);
@@ -306,7 +305,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         }
     }
 
-    private <R extends Object> R execute(Function<StatefulRediSearchConnection<String, Object>, R> function) {
+    private <R> R execute(Function<StatefulRediSearchConnection<String, Object>, R> function) {
 
         try (StatefulRediSearchConnection<String, Object> connection = pool.borrowObject()) {
             return function.apply(connection);

@@ -129,7 +129,7 @@ public class LettucePagingTest {
             do {
                 System.out.println("found results:" + allResults.size());
 //                aggregateResults = connection.sync().cursorRead("sku", aggregateResults.getCursor());    // works
-                aggregateResults = conn.sync().cursorRead("sku", aggregateResults.getCursor());      // fails
+                aggregateResults = conn.sync().cursorRead("sku", aggregateResults.cursor());      // fails
                 aggregateResults.forEach(r -> allResults.add("result found"));
             } while (aggregateResults.size() == 1000);
 //        });

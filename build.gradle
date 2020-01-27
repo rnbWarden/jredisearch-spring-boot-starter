@@ -1,10 +1,10 @@
 plugins {
     id 'java'
     id 'idea'
-    id "io.freefair.lombok" version "3.8.1"
+    id "io.freefair.lombok" version "4.1.6"
     id 'maven'
     id "nebula.release" version "6.1.1"
-    id 'org.springframework.boot' version '2.1.2.RELEASE'
+    id 'org.springframework.boot' version '2.2.4.RELEASE'
 }
 apply plugin: 'io.spring.dependency-management'
 
@@ -54,6 +54,7 @@ dependencies {
     compileOnly 'org.slf4j:slf4j-api:1.7.30'
 
     compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
+    compileOnly 'com.fasterxml.jackson.core:jackson-core:2.10.2'
 
     compileOnly 'org.springframework.data:spring-data-redis:2.2.4.RELEASE'
     //jedis
