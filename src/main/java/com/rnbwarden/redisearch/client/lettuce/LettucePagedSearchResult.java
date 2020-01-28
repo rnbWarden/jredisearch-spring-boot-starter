@@ -30,7 +30,7 @@ public class LettucePagedSearchResult<E extends RedisSearchableEntity> implement
     public Optional<E> getResult() {
 
         try {
-            return lettuceRediSearchClient.findByQualifiedKey(key);
+            return lettuceRediSearchClient.findByKey(key);
         } catch (Exception e) {
             if (exceptionConsumer != null) {
                 exceptionConsumer.accept(e);
