@@ -1,9 +1,10 @@
-package com.rnbwarden.redisearch.autoconfiguration;
+package com.rnbwarden.redisearch.config.autoconfig;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -13,6 +14,7 @@ import org.springframework.context.annotation.Import;
  */
 @Configuration("RediSearchAutoConfiguration")
 @Import({RediSearchJedisClientAutoConfiguration.class, RediSearchLettuceClientAutoConfiguration.class})
+@EnableConfigurationProperties(RedisProperties.class)
 public class RediSearchAutoConfiguration {
 
     @ConditionalOnMissingBean(name = "objectMapper")
@@ -28,7 +30,4 @@ public class RediSearchAutoConfiguration {
 
         return objectMapper;
     }
-
-    @Autowired
-    private RediSearchClientAutoConfiguration rediSearchClientAutoConfiguration;
 }

@@ -36,16 +36,23 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     protected final RedisSerializer<E> redisSerializer;
     private final Map<String, T> fields = new LinkedHashMap<>();
+    private final Class<E> clazz;
 
     protected AbstractRediSearchClient(Class<E> clazz,
                                        RedisSerializer<E> redisSerializer,
                                        Long defaultMaxResults) {
 
+        this.clazz = clazz;
         this.redisSerializer = redisSerializer;
         this.defaultMaxResults = defaultMaxResults;
         this.index = getIndex(clazz);
         this.keyPrefix = format("%s:", index);
         initSearchableFields(clazz);
+    }
+
+    public Class<E> getType() {
+
+        return clazz;
     }
 
     private void initSearchableFields(Class<E> clazz) {
@@ -181,7 +188,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     public Long getKeyCount(PagingSearchContext pagingSearchContext) {
 
         AtomicLong count = new AtomicLong();
-        search(pagingSearchContext).getResultStream().forEach(r -> count.incrementAndGet());
+        search(pagingSearchContext).resultStream().forEach(r -> count.incrementAndGet());
         return count.get();
     }
 
@@ -267,6 +274,5 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
         return keyPrefix + key;
     }
-
 
 }

@@ -1,18 +1,13 @@
 plugins {
+    id 'maven'
     id 'java'
     id 'idea'
     id "io.freefair.lombok" version "4.1.6"
-    id 'maven'
-    id "nebula.release" version "6.1.1"
-    id 'org.springframework.boot' version '2.2.4.RELEASE'
+    id "nebula.release" version "14.1.0"
 }
-apply plugin: 'io.spring.dependency-management'
 
 repositories {
     jcenter()
-    maven {
-        url "https://oss.sonatype.org/content/repositories/snapshots"
-    }
 }
 
 tasks.withType(JavaCompile) {
@@ -23,16 +18,11 @@ jar {
     baseName = project.name
 }
 
-bootJar.enabled=false
 jar.enabled=true
 
 group 'com.rnbwarden'
-sourceCompatibility = 1.11
-targetCompatibility = 1.11
-
-repositories {
-    maven { url "http://repo.spring.io/libs-snapshot" }
-}
+sourceCompatibility = 11
+targetCompatibility = 11
 
 //noinspection GroovyAssignabilityCheck
 configurations.all {
@@ -40,33 +30,31 @@ configurations.all {
 }
 dependencies {
 
-    compileOnly 'org.springframework.boot:spring-boot-autoconfigure:2.2.4.RELEASE'
-    compileOnly 'org.springframework.boot:spring-boot-dependencies:2.2.4.RELEASE'
-    compileOnly 'org.springframework.boot:spring-boot:2.2.4.RELEASE'
-
+    compile 'javax.annotation:javax.annotation-api:1.3.2'
     compile 'org.apache.commons:commons-lang3:3.9'
     compile 'org.apache.commons:commons-pool2:2.8.0'
     compile 'commons-io:commons-io:2.6'
 
-    compileOnly 'org.springframework:spring-context:5.2.3.RELEASE'
-    compileOnly 'org.springframework:spring-beans:5.2.3.RELEASE'
-    compileOnly 'org.springframework:spring-core:5.2.3.RELEASE'
+    compileOnly 'org.springframework.boot:spring-boot:2.2.5.RELEASE'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure:2.2.5.RELEASE'
+    compileOnly 'org.springframework.boot:spring-boot-dependencies:2.2.5.RELEASE'
+
     compileOnly 'org.slf4j:slf4j-api:1.7.30'
 
     compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
     compileOnly 'com.fasterxml.jackson.core:jackson-core:2.10.2'
 
-    compileOnly 'org.springframework.data:spring-data-redis:2.2.4.RELEASE'
+    compileOnly 'org.springframework.data:spring-data-redis:2.2.5.RELEASE'
     //jedis
     compileOnly 'redis.clients:jedis:3.2.0'
     compileOnly 'com.redislabs:jredisearch:1.3.0'
     //lettuce
-    compileOnly 'com.redislabs:lettusearch:1.12.3'
-    compile ('com.redislabs:spring-redisearch:1.12.1') {
+    compileOnly 'com.redislabs:lettusearch:1.13.0'
+    compileOnly ('com.redislabs:spring-redisearch:1.12.8') {
         exclude group: 'com.redislabs', module: 'lettusearch'
     }
 
-    testCompile 'org.springframework.boot:spring-boot-starter-test:2.2.4.RELEASE'
+    testCompile 'org.springframework.boot:spring-boot-starter-test:2.2.5.RELEASE'
     testCompile 'junit:junit:4.13'
     testCompile 'org.mockito:mockito-core:3.2.4'
 }

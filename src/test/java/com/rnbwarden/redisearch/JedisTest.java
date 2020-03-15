@@ -7,46 +7,35 @@ import com.rnbwarden.redisearch.client.SearchResults;
 import com.rnbwarden.redisearch.client.context.PagingSearchContext;
 import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.client.jedis.JedisRediSearchClient;
+import com.rnbwarden.redisearch.entity.Brand;
+import com.rnbwarden.redisearch.entity.ProductEntity;
 import com.rnbwarden.redisearch.entity.SearchOperator;
-import com.rnbwarden.redisearch.entity.StubEntity;
+import com.rnbwarden.redisearch.entity.SkuEntity;
 import io.redisearch.client.Client;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.rnbwarden.redisearch.entity.StubEntity.COLUMN1;
-import static com.rnbwarden.redisearch.entity.StubEntity.LIST_COLUMN;
-import static java.util.Arrays.asList;
+import static com.rnbwarden.redisearch.entity.ProductEntity.*;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
-import static org.assertj.core.util.Maps.newHashMap;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Ignore // un-ignore to test with local redis w/ Search module
 public class JedisTest {
 
-    private JedisRediSearchClient<StubEntity> jedisRediSearchClient;
+    private JedisRediSearchClient<ProductEntity> jedisRediSearchClient;
 
     @Before
-    @SuppressWarnings("unchecked")
     public void setUp() {
 
-        Class<StubEntity> clazz = StubEntity.class;
-        RedisSerializer<?> redisSerializer = new CompressingJacksonSerializer<>(clazz, new ObjectMapper());
-        Client rediSearchClient = new Client("stub", "localhost", 6379);
-        jedisRediSearchClient = new JedisRediSearchClient(clazz, rediSearchClient, redisSerializer, 1000L);
-
-        jedisRediSearchClient.recreateIndex();
+        createJedisRediSearchClient();
     }
 
     @After
@@ -59,76 +48,113 @@ public class JedisTest {
         }
     }
 
+    private void createJedisRediSearchClient() {
+
+        Class<ProductEntity> clazz = ProductEntity.class;
+        RedisSerializer<ProductEntity> redisSerializer = new CompressingJacksonSerializer<>(clazz, new ObjectMapper());
+        Client rediSearchClient = new Client("stub", "localhost", 6379);
+        jedisRediSearchClient = new JedisRediSearchClient<>(clazz, rediSearchClient, redisSerializer, 1000L);
+    }
+
     @Test
-    @SuppressWarnings("unchecked")
     public void test() {
 
         assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
 
-        StubEntity stub1 = new StubEntity("key123", "value1", asList("listValue1", "listValue2", "listValue3"));
-        StubEntity stub2 = new StubEntity("key456", "value2", asList("listValue4", "listValue2", "listValue5"));
-        jedisRediSearchClient.save(stub1);
-        jedisRediSearchClient.save(stub2);
+        ProductEntity product1 = new ProductEntity("id123", "FALCON01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))));
+
+        ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
+                List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+
+        jedisRediSearchClient.save(product1);
+        jedisRediSearchClient.save(product2);
 
         assertEquals(2, (long) jedisRediSearchClient.getKeyCount());
-        assertNotNull(jedisRediSearchClient.findByKey(stub1.getPersistenceKey()));
+
+        assertNotNull(jedisRediSearchClient.findByKey(product1.getPersistenceKey()));
         assertTrue(jedisRediSearchClient.findAll(100).hasResults());
 
-        SearchResults searchResults = jedisRediSearchClient.findByFields(newHashMap(COLUMN1, stub1.getColumn1()));
+        SearchResults<ProductEntity> searchResults = jedisRediSearchClient.findByFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
         assertEquals(1, searchResults.getResults().size());
         assertNotNull(searchResults.getResults().get(0));
-        List<StubEntity> resultEntities = jedisRediSearchClient.deserialize(searchResults);
-        assertNotNull(resultEntities.get(0));
+        List<ProductEntity> resultEntities = jedisRediSearchClient.deserialize(searchResults);
+        assertEquals(product1, resultEntities.get(0));
 
         SearchContext searchContext = new SearchContext();
-        searchContext.addField(jedisRediSearchClient.getField(LIST_COLUMN), SearchOperator.INTERSECTION, "listValue2", "listValue3");
+        searchContext.addField(jedisRediSearchClient.getField(SKUS), SearchOperator.INTERSECTION, "f01", "f02");
         assertEquals(1, jedisRediSearchClient.find(searchContext).getResults().size());
 
         searchContext = new SearchContext();
-        searchContext.addField(jedisRediSearchClient.getField(LIST_COLUMN), SearchOperator.UNION, "listValue2", "listValue3");
+        searchContext.addField(jedisRediSearchClient.getField(SKUS), SearchOperator.UNION, "f01", "b02");
         assertEquals(2, jedisRediSearchClient.find(searchContext).getResults().size());
     }
 
     @Test
     public void testPaging() {
 
-        assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
+        int max = 10000;
+        String namePrefix = "FALCON-";
+        Brand brand = Brand.ADIDAS;
 
-        StubEntity stubEntity1 = new StubEntity("hijklmnop", "value1", emptyList());
-        StubEntity stubEntity2 = new StubEntity("abcdefg", "value1", emptyList());
-        jedisRediSearchClient.save(stubEntity1);
-        jedisRediSearchClient.save(stubEntity2);
+        assertEquals(0, jedisRediSearchClient.getKeyCount(), 0);
 
-        assertEquals(2, (long) jedisRediSearchClient.getKeyCount());
+        jedisRediSearchClient.save(new ProductEntity("id123", "FALCON01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99")))));
 
-        PagingSearchContext pagingSearchContext = jedisRediSearchClient.getPagingSearchContextWithFields(singletonMap(COLUMN1, "value1"));
-        PageableSearchResults<StubEntity> searchResults = jedisRediSearchClient.search(pagingSearchContext);
+        saveProductsInRange(max, namePrefix, brand);
 
-        List<StubEntity> stubEntities = searchResults.getResultStream(false)
+        assertEquals(max + 1, jedisRediSearchClient.getKeyCount(), 0);
+
+        PagingSearchContext pagingSearchContext = jedisRediSearchClient.getPagingSearchContextWithFields(Map.of(BRAND, Brand.ADIDAS.toString()));
+        PageableSearchResults<ProductEntity> searchResults = jedisRediSearchClient.search(pagingSearchContext);
+
+        List<ProductEntity> products = searchResults.resultStream()
                 .map(PagedSearchResult::getResult)
                 .map(Optional::get)
                 .collect(Collectors.toList());
-        assertEquals(stubEntity2.getColumn1(), stubEntities.get(0).getColumn1());
-        assertEquals(stubEntity1.getColumn1(), stubEntities.get(0).getColumn1());
+
+        assertEquals(max, products.size());
+        products.forEach(product -> {
+            assertTrue(product.getId().startsWith("id"));
+            assertTrue(product.getArticleNumber().startsWith(namePrefix));
+            assertEquals(brand, product.getBrand());
+        });
+    }
+
+    private void saveProductsInRange(int max, String namePrefix, Brand brand) {
+
+        IntStream.range(0, max)/*.parallel()*/.forEach(i -> {
+            ProductEntity product = new ProductEntity("id" + i, namePrefix + i, brand, Collections.emptyList());
+            jedisRediSearchClient.save(product);
+        });
     }
 
     @Test
     public void testSorting() {
 
         assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
-        IntStream.range(1, 10000).forEach(i -> jedisRediSearchClient.save(new StubEntity("zyxwvut" + i, i + "value", emptyList())));
+        int max = 5000;
+        int expected = max + 2;
+        jedisRediSearchClient.save(new ProductEntity("id-ZZZ01", "ZZZ01", Brand.NIKE, Collections.emptyList()));
+        saveProductsInRange(max, "TEST-", Brand.NIKE);
+        jedisRediSearchClient.save(new ProductEntity("id-AAA01", "AAA01", Brand.NIKE, Collections.emptyList()));
 
-        assertEquals(9999, (long) jedisRediSearchClient.getKeyCount());
+        assertEquals(expected, jedisRediSearchClient.getKeyCount(), 0);
 
-        PageableSearchResults<StubEntity> searchResults = jedisRediSearchClient.findAll(100000);
-        assertEquals(9999, searchResults.getResultStream().count());
+        PageableSearchResults<ProductEntity> searchResults = jedisRediSearchClient.findAll(max * 2);
+        assertEquals(expected, searchResults.resultStream().count());
 
-        List<StubEntity> stubEntities = searchResults.getResultStream(false)
+        List<ProductEntity> products = searchResults.resultStream()
                 .map(PagedSearchResult::getResult)
                 .map(Optional::get)
                 .collect(Collectors.toList());
-        assertEquals("zyxwvut9999", stubEntities.get(0).getKey());
-        assertEquals("zyxwvut9998", stubEntities.get(1).getKey());
+
+        assertTrue(products.get(0).getArticleNumber().startsWith("AAA"));
+        assertTrue(products.get(products.size() - 1).getArticleNumber().startsWith("ZZZ"));
     }
 
     @Test
@@ -138,7 +164,7 @@ public class JedisTest {
 
         List<String> keys = new ArrayList<>();
         IntStream.range(1, 100).forEach(i -> {
-            StubEntity entity = new StubEntity("zyxwvut" + i, i + "value", emptyList());
+            ProductEntity entity = new ProductEntity("zyxwvut" + i, i + "value", Brand.NIKE, emptyList());
             keys.add(entity.getPersistenceKey());
             jedisRediSearchClient.save(entity);
         });
@@ -152,10 +178,10 @@ public class JedisTest {
         fetchKeys.add(keys.get(81));
         fetchKeys.add("unknown-key");
 
-        List<StubEntity> results = jedisRediSearchClient.findByKeys(fetchKeys);
+        List<ProductEntity> results = jedisRediSearchClient.findByKeys(fetchKeys);
         assertEquals(fetchKeys.size() - 1, results.size());
 
-        Map<String, StubEntity> resultsMap = results.stream().collect(Collectors.toMap(StubEntity::getPersistenceKey, identity()));
+        Map<String, ProductEntity> resultsMap = results.stream().collect(Collectors.toMap(ProductEntity::getPersistenceKey, identity()));
 
         fetchKeys.stream()
                 .filter(key -> !key.equals(fetchKeys.get(fetchKeys.size() - 1)))

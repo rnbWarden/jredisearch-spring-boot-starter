@@ -1,5 +1,6 @@
 package com.rnbwarden.redisearch.client.lettuce;
 
+import com.redislabs.lettusearch.search.SearchResult;
 import com.redislabs.lettusearch.search.SearchResults;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
 import com.rnbwarden.redisearch.client.PagedSearchResult;
@@ -34,9 +35,20 @@ public class LettucePagingSearchResults<E extends RedisSearchableEntity> impleme
     }
 
     @Override
-    public Stream<PagedSearchResult<E>> getResultStream(boolean useParallel) {
+    public Stream<PagedSearchResult<E>> resultStream() {
 
-        return (useParallel ? delegate.parallelStream() : delegate.stream())
+        return getResultStream(delegate.stream());
+    }
+
+    @Override
+    public Stream<PagedSearchResult<E>> parallelStream() {
+
+        return getResultStream(delegate.parallelStream());
+    }
+
+    Stream<PagedSearchResult<E>> getResultStream(Stream<SearchResult<String, Object>> stream) {
+
+        return stream
                 .filter(Objects::nonNull)
                 .map(this::createSearchResult);
     }

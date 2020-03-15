@@ -12,15 +12,20 @@ import java.util.Optional;
 
 public interface RediSearchClient<E extends RedisSearchableEntity> {
 
+    Class<E> getType();
+
     SearchableField<E> getField(String name);
 
     void recreateIndex();
+
     void dropIndex();
+
     Long getKeyCount();
 
     Long getKeyCount(PagingSearchContext pagingSearchContext);
 
     void save(E entity);
+
     void delete(String key);
 
     Optional<E> findByKey(String key);

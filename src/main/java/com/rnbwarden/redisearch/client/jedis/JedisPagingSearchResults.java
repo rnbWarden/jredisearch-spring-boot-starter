@@ -3,6 +3,7 @@ package com.rnbwarden.redisearch.client.jedis;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
 import com.rnbwarden.redisearch.client.PagedSearchResult;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
+import io.redisearch.Document;
 import io.redisearch.SearchResult;
 
 import java.util.Objects;
@@ -31,9 +32,20 @@ public class JedisPagingSearchResults<E extends RedisSearchableEntity> implement
     }
 
     @Override
-    public Stream<PagedSearchResult<E>> getResultStream(boolean useParallel) {
+    public Stream<PagedSearchResult<E>> resultStream() {
 
-        return (useParallel ? delegate.docs.parallelStream() : delegate.docs.stream())
+        return getResultStream(delegate.docs.stream());
+    }
+
+    @Override
+    public Stream<PagedSearchResult<E>> parallelStream() {
+
+        return getResultStream(delegate.docs.parallelStream());
+    }
+
+    Stream<PagedSearchResult<E>> getResultStream(Stream<Document> stream) {
+
+        return stream
                 .filter(Objects::nonNull)
                 .map(this::createSearchResult);
     }

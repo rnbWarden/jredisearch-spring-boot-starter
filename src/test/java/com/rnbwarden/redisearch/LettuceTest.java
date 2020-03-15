@@ -1,63 +1,44 @@
 package com.rnbwarden.redisearch;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
-import com.redislabs.lettusearch.StatefulRediSearchConnection;
-import com.redislabs.lettusearch.aggregate.AggregateOptions;
-import com.redislabs.lettusearch.aggregate.AggregateWithCursorResults;
-import com.redislabs.lettusearch.aggregate.CursorOptions;
-import com.redislabs.lettusearch.aggregate.SortProperty;
-import com.redislabs.lettusearch.search.SearchOptions;
-import com.rnbwarden.redisearch.autoconfiguration.RediSearchLettuceClientAutoConfiguration;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
+import com.rnbwarden.redisearch.client.PagedSearchResult;
 import com.rnbwarden.redisearch.client.SearchResults;
 import com.rnbwarden.redisearch.client.context.PagingSearchContext;
 import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
+import com.rnbwarden.redisearch.config.factorybean.RediSearchLettuceClientFactoryBean;
+import com.rnbwarden.redisearch.entity.Brand;
+import com.rnbwarden.redisearch.entity.ProductEntity;
 import com.rnbwarden.redisearch.entity.SearchOperator;
-import com.rnbwarden.redisearch.entity.StubEntity;
+import com.rnbwarden.redisearch.entity.SkuEntity;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.rnbwarden.redisearch.entity.StubEntity.COLUMN1;
-import static com.rnbwarden.redisearch.entity.StubEntity.LIST_COLUMN;
-import static java.util.Arrays.asList;
+import static com.rnbwarden.redisearch.entity.ProductEntity.*;
 import static java.util.Collections.emptyList;
 import static java.util.function.Function.identity;
-import static org.assertj.core.util.Maps.newHashMap;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Ignore // un-ignore to test with local redis w/ Search module
 public class LettuceTest {
 
-    private LettuceRediSearchClient<StubEntity> lettuceRediSearchClient;
-    private RediSearchClient rediSearchClient;
+    private LettuceRediSearchClient<ProductEntity> lettuceRediSearchClient;
 
     @Before
-    @SuppressWarnings("unchecked")
     public void setUp() {
 
-        Class<StubEntity> clazz = StubEntity.class;
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        RedisSerializer<?> redisSerializer = new CompressingJacksonSerializer<>(clazz, objectMapper);
-        RedisCodec redisCodec = new RediSearchLettuceClientAutoConfiguration.LettuceRedisCodec();
-
-        rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
-        lettuceRediSearchClient = new LettuceRediSearchClient(clazz, rediSearchClient, redisCodec, redisSerializer, 1000L);
-        lettuceRediSearchClient.recreateIndex();
+        createRediSearchClient();
     }
 
     @After
@@ -66,205 +47,173 @@ public class LettuceTest {
         lettuceRediSearchClient.dropIndex();
     }
 
+    private void createRediSearchClient() {
+
+        Class<ProductEntity> clazz = ProductEntity.class;
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        RedisSerializer<ProductEntity> redisSerializer = new CompressingJacksonSerializer<>(clazz, objectMapper);
+        RedisCodec<String, Object> redisCodec = new RediSearchLettuceClientFactoryBean.LettuceRedisCodec();
+
+        RediSearchClient rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
+        lettuceRediSearchClient = new LettuceRediSearchClient<>(clazz, rediSearchClient, redisCodec, redisSerializer, 1000L);
+    }
+
     @Test
     public void test() {
 
         assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
 
-        StubEntity stub1 = new StubEntity("key123", "value1", asList("listValue1", "listValue2", "listValue3"));
-        StubEntity stub2 = new StubEntity("key456", "value2", asList("listValue4", "listValue2", "listValue5"));
-        lettuceRediSearchClient.save(stub1);
-        lettuceRediSearchClient.save(stub2);
+        ProductEntity product1 = new ProductEntity("id123", "FALCON01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))));
+
+        ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
+                List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+
+        lettuceRediSearchClient.save(product1);
+        lettuceRediSearchClient.save(product2);
 
         assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
-        assertNotNull(lettuceRediSearchClient.findByKey(stub1.getPersistenceKey()));
+
+        assertNotNull(lettuceRediSearchClient.findByKey(product1.getPersistenceKey()));
         assertTrue(lettuceRediSearchClient.findAll(100).hasResults());
 
-        SearchResults<StubEntity> searchResults = lettuceRediSearchClient.findByFields(newHashMap(COLUMN1, stub1.getColumn1()));
+        SearchResults<ProductEntity> searchResults = lettuceRediSearchClient.findByFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
         assertEquals(1, searchResults.getResults().size());
         assertNotNull(searchResults.getResults().get(0));
-        List<StubEntity> resultEntities = lettuceRediSearchClient.deserialize(searchResults);
-        assertNotNull(resultEntities.get(0));
+        List<ProductEntity> resultEntities = lettuceRediSearchClient.deserialize(searchResults);
+        assertEquals(product1, resultEntities.get(0));
 
         SearchContext searchContext = new SearchContext();
-        searchContext.addField(lettuceRediSearchClient.getField(LIST_COLUMN), SearchOperator.INTERSECTION, "listValue2", "listValue3");
+        searchContext.addField(lettuceRediSearchClient.getField(SKUS), SearchOperator.INTERSECTION, "f01", "f02");
         assertEquals(1, lettuceRediSearchClient.find(searchContext).getResults().size());
 
         searchContext = new SearchContext();
-        searchContext.addField(lettuceRediSearchClient.getField(LIST_COLUMN), SearchOperator.UNION, "listValue2", "listValue3");
+        searchContext.addField(lettuceRediSearchClient.getField(SKUS), SearchOperator.UNION, "f01", "b02");
         assertEquals(2, lettuceRediSearchClient.find(searchContext).getResults().size());
     }
 
-    @Ignore
     @Test
     public void testPaging() {
 
-        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-        root.setLevel(Level.INFO);
+        int max = 10000;
+        String namePrefix = "FALCON-";
+        Brand brand = Brand.ADIDAS;
 
-        Set<String> allKeys = new HashSet<>();
-        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+        assertEquals(0, lettuceRediSearchClient.getKeyCount(), 0);
 
-        (new Random()).ints(35726).forEach(random -> {
-            String key = "key" + random;
-            allKeys.add(key);
-            lettuceRediSearchClient.save(new StubEntity(key, key + "-value1", emptyList()));
+        lettuceRediSearchClient.save(new ProductEntity("id123", "FALCON01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99")))));
+
+        saveProductsInRange(max, namePrefix, brand);
+
+        assertEquals(max + 1, lettuceRediSearchClient.getKeyCount(), 0);
+
+        PagingSearchContext pagingSearchContext = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(BRAND, Brand.ADIDAS.toString()));
+        PageableSearchResults<ProductEntity> searchResults = lettuceRediSearchClient.search(pagingSearchContext);
+
+        List<ProductEntity> products = searchResults.resultStream()
+                .map(PagedSearchResult::getResult)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+
+        assertEquals(max, products.size());
+        products.forEach(product -> {
+            assertTrue(product.getId().startsWith("id"));
+            assertTrue(product.getArticleNumber().startsWith(namePrefix));
+            assertEquals(brand, product.getBrand());
         });
-
-        Set<String> allResults = new HashSet<>();
-
-        PagingSearchContext context = new PagingSearchContext();
-        context.addField(lettuceRediSearchClient.getField(COLUMN1), "value1");
-//        context.setOffset(0L);
-//        context.setLimit(10000000000L);
-        context.setSortBy(COLUMN1);
-
-        PageableSearchResults<StubEntity> pageableSearchResults = lettuceRediSearchClient.search(context);
-        pageableSearchResults.getResultStream()
-//        pageableSearchResults.getResultStream(false)
-                .forEach(searchResult -> {
-                    synchronized (this) {
-                        allResults.add(searchResult.getKey());
-                    }
-                    if (allResults.size() % 500 == 0) {
-                        System.out.println("Done with " + allResults.size() + " - " + new Date(System.currentTimeMillis()).toString());
-                    }
-                });
-
-        System.out.println("FINISHED with " + allResults.size()
-                + " - total count = " + pageableSearchResults.getTotalResults()
-                + " - total keys = " + allKeys.size()
-                + " - " + new Date(System.currentTimeMillis()).toString());
     }
 
     @Test
-    public void testCursorPaging() {
+    public void testClientSidePaging() {
 
-        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-        root.setLevel(Level.INFO);
+        int max = 10000;
+        String namePrefix = "FALCON-";
+        Brand brand = Brand.ADIDAS;
 
-        Set<String> allKeys = new HashSet<>();
-        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+        assertEquals(0, lettuceRediSearchClient.getKeyCount(), 0);
 
-        (new Random()).ints(5726).forEach(random -> {
-            String key = "key" + random;
-            allKeys.add(key);
-            lettuceRediSearchClient.save(new StubEntity(key, key + "-value1", emptyList()));
+        lettuceRediSearchClient.save(new ProductEntity("id123", "FALCON01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99")))));
+
+        saveProductsInRange(max, namePrefix, brand);
+
+        assertEquals(max + 1, lettuceRediSearchClient.getKeyCount(), 0);
+
+        PagingSearchContext pagingSearchContext = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(BRAND, Brand.ADIDAS.toString()));
+        pagingSearchContext.setUseClientSidePaging(true);
+        PageableSearchResults<ProductEntity> searchResults = lettuceRediSearchClient.search(pagingSearchContext);
+
+        List<ProductEntity> products = searchResults.resultStream()
+                .map(PagedSearchResult::getResult)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+
+        assertEquals(max, products.size());
+        products.forEach(product -> {
+            assertTrue(product.getId().startsWith("id"));
+            assertTrue(product.getArticleNumber().startsWith(namePrefix));
+            assertEquals(brand, product.getBrand());
         });
+    }
 
-        Set<String> allResults = new HashSet<>();
+    private void saveProductsInRange(int max, String namePrefix, Brand brand) {
 
-        PagingSearchContext context = new PagingSearchContext();
-
-        context.addField(lettuceRediSearchClient.getField(COLUMN1), "value1");
-        context.setSortBy(COLUMN1);
-//        context.setUseClientSidePaging(false);
-        context.setPageSize(50);
-
-        PageableSearchResults<StubEntity> pageableSearchResults = lettuceRediSearchClient.search(context);
-        pageableSearchResults.getResultStream(/*true*/)
-//        pageableSearchResults.getResultStream()
-                .forEach(searchResult -> {
-                    synchronized (this) {
-                        allResults.add(searchResult.getKey());
-                    }
-                    if (allResults.size() % 500 == 0) {
-                        System.out.println("Done with " + allResults.size() + " - " + new Date(System.currentTimeMillis()).toString());
-                    }
-                });
-
-        root.info("FINISHED with " + allResults.size()
-                + " - total count = " + pageableSearchResults.getTotalResults()
-                + " - total keys = " + allKeys.size()
-                + " - " + new Date(System.currentTimeMillis()).toString());
+        IntStream.range(0, max)/*.parallel()*/.forEach(i -> {
+            ProductEntity product = new ProductEntity("id" + i, namePrefix + i, brand, Collections.emptyList());
+            lettuceRediSearchClient.save(product);
+        });
     }
 
     @Test
     public void testFindAll() {
 
-        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-        root.setLevel(Level.INFO);
+        int max = 135726;
+        String namePrefix = "FALCON-";
+        Brand brand = Brand.NIKE;
 
-        Set<String> allKeys = new HashSet<>();
-        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+        assertEquals(0, lettuceRediSearchClient.getKeyCount(), 0);
+        saveProductsInRange(max, namePrefix, brand);
+        assertEquals(max, lettuceRediSearchClient.getKeyCount(), 0);
 
-        (new Random()).ints(5726).forEach(random -> {
-            String key = "key" + random;
-            allKeys.add(key);
-            lettuceRediSearchClient.save(new StubEntity(key, key + "-value1", emptyList()));
-        });
+        Set<ProductEntity> products = lettuceRediSearchClient.findAll(Integer.MAX_VALUE).resultStream()
+                .map(PagedSearchResult::getResult)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
 
-        Set<String> allResults = new HashSet<>();
-
-        lettuceRediSearchClient.findAll(Integer.MAX_VALUE).getResultStream()
-                .forEach(searchResult -> {
-                    allResults.add(searchResult.getKey());
-                    if (allResults.size() % 500 == 0) {
-                        System.out.println("Done with " + allResults.size() + " - " + new Date(System.currentTimeMillis()).toString());
-                    }
-                });
-        root.info("FINISHED with " + allResults.size()
-                + " - total keys = " + allKeys.size()
-                + " - " + new Date(System.currentTimeMillis()).toString());
+        assertEquals(max, products.size());
     }
 
     @Test
-    public void testCursor() {
+    public void testSorting() {
 
-        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-        root.setLevel(Level.INFO);
+        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+        int max = 1000;
 
-        (new Random()).ints(3726).forEach(random -> {
-            String key = "key" + random;
-            lettuceRediSearchClient.save(new StubEntity(key, key + "-value1", emptyList()));
-        });
+        lettuceRediSearchClient.save(new ProductEntity("id-ZZZ01", "ZZZ01", Brand.NIKE, Collections.emptyList()));
+        saveProductsInRange(max - 2, "TEST-", Brand.NIKE);
+        lettuceRediSearchClient.save(new ProductEntity("id-AAA01", "AAA01", Brand.NIKE, Collections.emptyList()));
 
-        String index = "stub";
-        StatefulRediSearchConnection<String, String> connection = rediSearchClient.connect();
+        assertEquals(max, lettuceRediSearchClient.getKeyCount(), 0);
 
-        Set<String> allResults = new HashSet<>();
+        PagingSearchContext pagingSearchContext = new PagingSearchContext();
+        pagingSearchContext.setSortBy(ARTICLE_NUMBER);
+        pagingSearchContext.setSortAscending(false);
+        PageableSearchResults<ProductEntity> searchResults = lettuceRediSearchClient.findAll(pagingSearchContext);
 
-        SearchOptions searchOptions = SearchOptions.builder().noContent(true).build();
-        com.redislabs.lettusearch.search.SearchResults<String, String> searchResults = connection.sync().search(index, "*", searchOptions);
-        System.out.println("search results = " + searchResults.count());
+        List<ProductEntity> products = searchResults.resultStream()
+                .map(PagedSearchResult::getResult)
+                .map(Optional::get)
+                .collect(Collectors.toList());
 
-        AggregateOptions aggregateOptions = AggregateOptions.builder()
-                .load("key")
-                .load("column1")
-//                .operation(com.redislabs.lettusearch.aggregate.Limit.builder().num(100).offset(0).build())
-                .operation(com.redislabs.lettusearch.aggregate.Sort.builder().max(5000L).property(SortProperty.builder().property("key").build()).build())
-                .build();
-
-        CursorOptions cursorOptions = CursorOptions.builder().count(100L).build();
-
-        AggregateWithCursorResults<String, String> aggregateResults = connection.sync().aggregate(index, "*", aggregateOptions, cursorOptions);
-        root.info("cursor results = " + aggregateResults.count() + " - size = " + aggregateResults.size());
-        aggregateResults.forEach(map -> allResults.add(map.get("column1")));
-
-        while (aggregateResults.size() == 100) {
-            aggregateResults = connection.sync().cursorRead(index, aggregateResults.cursor());
-            root.info("cursor results = " + aggregateResults.count() + " - size = " + aggregateResults.size());
-            aggregateResults.forEach(map -> allResults.add(map.get("column1")));
-        }
-        root.info("all results size = " + allResults.size());
-
-/**
- aggregateOptions = AggregateOptions.builder()
- .load("key")
- //                .operation(com.redislabs.lettusearch.aggregate.Limit.builder().num(100).offset(100).build())
- .operation(com.redislabs.lettusearch.aggregate.Sort.builder().max(1000L).property(SortProperty.builder().property("key").build()).build())
- .build();
- AggregateWithCursorResults<String, String> aggregateResults3 = connection.sync().aggregate(index, "*" , aggregateOptions, cursorOptions);
- root.info("cursor results = " + aggregateResults3.count() + " - size = " + aggregateResults3.size());
-
- aggregateOptions = AggregateOptions.builder()
- .load("key")
- //                .operation(com.redislabs.lettusearch.aggregate.Limit.builder().num(100).offset(200).build())
- .operation(com.redislabs.lettusearch.aggregate.Sort.builder().max(1000L).property(SortProperty.builder().property("key").build()).build())
- .build();
- AggregateWithCursorResults<String, String> aggregateResults4 = connection.sync().aggregate(index, "*" , aggregateOptions, cursorOptions);
- root.info("cursor results = " + aggregateResults4.count() + " - size = " + aggregateResults4.size());
- */
+        assertEquals(max, products.size());
+        assertTrue(products.get(0).getArticleNumber().startsWith("AAA"));
+        assertTrue(products.get(products.size() - 1).getArticleNumber().startsWith("ZZZ"));
     }
 
     @Test
@@ -274,7 +223,7 @@ public class LettuceTest {
 
         List<String> keys = new ArrayList<>();
         IntStream.range(1, 100).forEach(i -> {
-            StubEntity entity = new StubEntity("zyxwvut" + i, i + "value", emptyList());
+            ProductEntity entity = new ProductEntity("zyxwvut" + i, i + "value", Brand.NIKE, emptyList());
             keys.add(entity.getPersistenceKey());
             lettuceRediSearchClient.save(entity);
         });
@@ -288,14 +237,35 @@ public class LettuceTest {
         fetchKeys.add(keys.get(81));
         fetchKeys.add("unknown-key");
 
-        List<StubEntity> results = lettuceRediSearchClient.findByKeys(fetchKeys);
+        List<ProductEntity> results = lettuceRediSearchClient.findByKeys(fetchKeys);
         assertEquals(fetchKeys.size() - 1, results.size());
 
-        Map<String, StubEntity> resultsMap = results.stream().collect(Collectors.toMap(StubEntity::getPersistenceKey, identity()));
+        Map<String, ProductEntity> resultsMap = results.stream().collect(Collectors.toMap(ProductEntity::getPersistenceKey, identity()));
 
         fetchKeys.stream()
                 .filter(key -> !key.equals(fetchKeys.get(fetchKeys.size() - 1)))
                 .forEach(key -> assertNotNull(resultsMap.get(key)));
 
+    }
+
+    @Test
+    public void testKeyCount() {
+
+        int keySize = 9845;
+        saveProductsInRange(keySize, "TEST-", Brand.NIKE);
+        Long keyCount = lettuceRediSearchClient.getKeyCount();
+        assertEquals(keySize, keyCount, 0);
+    }
+
+    @Test
+    public void testKeyCountPagingSearchContext() {
+
+        int keySize = 23464;
+        saveProductsInRange(keySize, "TEST-", Brand.NIKE);
+
+        PagingSearchContext pagingSearchContext = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(ProductEntity.BRAND, Brand.NIKE.toString()));
+        pagingSearchContext.setPageSize(100000L);
+        Long keyCount = lettuceRediSearchClient.getKeyCount(pagingSearchContext);
+        assertEquals(keySize, keyCount, 0);
     }
 }

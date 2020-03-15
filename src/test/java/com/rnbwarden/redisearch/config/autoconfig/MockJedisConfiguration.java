@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.autoconfiguration;
+package com.rnbwarden.redisearch.config.autoconfig;
 
 import io.redisearch.client.Client;
 import org.springframework.context.annotation.Bean;

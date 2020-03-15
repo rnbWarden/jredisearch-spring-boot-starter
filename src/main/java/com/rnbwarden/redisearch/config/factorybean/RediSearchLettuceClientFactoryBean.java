@@ -1,38 +1,35 @@
-package com.rnbwarden.redisearch.autoconfiguration;
+package com.rnbwarden.redisearch.config.factorybean;
 
-import com.redislabs.springredisearch.RediSearchAutoConfiguration;
+import com.redislabs.lettusearch.RediSearchClient;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
-import io.lettuce.core.RedisClient;
+import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import io.lettuce.core.codec.ByteArrayCodec;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.codec.StringCodec;
 import io.lettuce.core.codec.Utf8StringCodec;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.stereotype.Component;
 
 import java.nio.ByteBuffer;
 
-@Configuration("RediSearchLettuceClientAutoConfiguration")
-@ConditionalOnClass({RedisClient.class, com.redislabs.lettusearch.RediSearchClient.class})
-@Import(RediSearchAutoConfiguration.class)
-public class RediSearchLettuceClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
+@Component
+public class RediSearchLettuceClientFactoryBean<E extends RedisSearchableEntity> extends AbstractRediSearchClientFactoryBean<E> {
+
+    private final com.redislabs.lettusearch.RediSearchClient rediSearchClient;
 
     @Autowired
-    private com.redislabs.lettusearch.RediSearchClient rediSearchClient;
+    public RediSearchLettuceClientFactoryBean(RediSearchClient rediSearchClient) {
+
+        this.rediSearchClient = rediSearchClient;
+    }
 
     @Override
-    @SuppressWarnings("unchecked")
-    void createRediSearchBeans(Class<?> clazz) {
+    com.rnbwarden.redisearch.client.RediSearchClient<E> createRediSearchClient() {
 
-        RedisSerializer<?> redisSerializer = createRedisSerializer(clazz);
-        RedisCodec redisCodec = new LettuceRedisCodec();
-
-        LettuceRediSearchClient lettuceRediSearchClient = new LettuceRediSearchClient(clazz, rediSearchClient, redisCodec, redisSerializer, defaultMaxResults);
-
-        beanFactory.registerSingleton(getRedisearchBeanName(clazz), lettuceRediSearchClient);
+        RedisSerializer<E> redisSerializer = createRedisSerializer();
+        RedisCodec<String, Object> redisCodec = new LettuceRedisCodec();
+        return new LettuceRediSearchClient<>(clazz, rediSearchClient, redisCodec, redisSerializer, defaultMaxResults);
     }
 
     public static class LettuceRedisCodec implements RedisCodec<String, Object> {

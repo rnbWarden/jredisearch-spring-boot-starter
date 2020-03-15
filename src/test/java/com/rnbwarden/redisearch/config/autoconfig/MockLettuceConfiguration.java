@@ -1,4 +1,4 @@
-package com.rnbwarden.redisearch.autoconfiguration;
+package com.rnbwarden.redisearch.config.autoconfig;
 
 import com.redislabs.lettusearch.RediSearchClient;
 import com.redislabs.lettusearch.RediSearchCommands;

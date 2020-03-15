@@ -49,6 +49,18 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
     }
 
     @Override
+    public Stream<PagedSearchResult<E>> resultStream() {
+
+        return getResultStream(false);
+    }
+
+    @Override
+    public Stream<PagedSearchResult<E>> parallelStream() {
+
+        return getResultStream(true);
+    }
+
+    @Override
     public synchronized Stream<PagedSearchResult<E>> getResultStream(boolean useParallel) {
 
         return StreamSupport.stream(Spliterators.spliterator(iterator, getTotalResults(),
