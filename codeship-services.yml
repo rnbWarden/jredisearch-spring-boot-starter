@@ -8,12 +8,3 @@ jredisearch-spring-boot-starter:
     - REDIS_URL=redis://redis
 redis:
   image: redislabs/redisearch
-#
-#jredisearch-spring-boot-starter:
-#    image: openjdk:11-jdk
-#  depends_on:
-#    - redis
-#  environment:
-#    - REDIS_URL=redis://redis
-#redis:
-#  image: redislabs/redisearch
