@@ -173,7 +173,7 @@ public class LettuceTest {
     @Test
     public void testFindAll() {
 
-        int max = 135726;
+        int max = 3726;
         String namePrefix = "FALCON-";
         Brand brand = Brand.NIKE;
 
