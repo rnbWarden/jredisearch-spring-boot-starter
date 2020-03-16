@@ -17,6 +17,7 @@ public class MockLettuceConfiguration {
 
     @Bean
     @Primary
+    @SuppressWarnings("unchecked")
     public RediSearchClient rediSearchClient() {
 
         RediSearchClient rediSearchClient = mock(RediSearchClient.class);
