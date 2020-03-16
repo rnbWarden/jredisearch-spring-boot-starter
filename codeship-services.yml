@@ -1,5 +1,5 @@
 jredisearch-spring-boot-starter:
-  image: java:openjdk-11-jdk
+  image: openjdk:jdk
   #  build:
   #    image: java:openjdk-11-jdk
   ##    image: com.rnbwarden/jrediesarch-spring-boot-starter
