@@ -1,6 +1,6 @@
 jredisearch-spring-boot-starter:
   build:
-    image: com.rnbwarden/jrediesarch-spring-boot-starter
+    image: jrediesarch-spring-boot-starter
     dockerfile: Dockerfile
   depends_on:
     - redis
