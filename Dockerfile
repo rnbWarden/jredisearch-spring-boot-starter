@@ -6,15 +6,15 @@ FROM openjdk:11-jdk
 WORKDIR /app
 
 ## Copying all gradle files necessary to install gradle with gradlew
-#COPY gradle gradle
-#COPY \
-#  ./gradle \
-#  build.gradle \
-#  gradle.properties \
-#  gradlew \
-#  settings.gradle \
-#
-#  ./
+COPY gradle gradle
+COPY \
+  ./gradle \
+  build.gradle \
+  gradle.properties \
+  gradlew \
+  settings.gradle \
+
+  ./
 
 # Install the gradle version used in the repository through gradlew
 RUN ./gradlew clean build
