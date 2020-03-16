@@ -21,7 +21,7 @@ public class RediSearchAutoConfigurationTest {
                 .withPropertyValues("redis.search.base-package=com.rnbwarden.redisearch")
                 .run((context) -> {
                     assertThat(context).doesNotHaveBean(JedisRediSearchClient.class);
-                    assertThat(context).hasBean("stubEntityRediSearchClient");
+                    assertThat(context).hasBean("productEntityRediSearchClient");
                 });
     }
 
@@ -34,7 +34,7 @@ public class RediSearchAutoConfigurationTest {
                 .withPropertyValues("redis.search.base-package=com.rnbwarden.redisearch")
                 .run((context) -> {
                     assertThat(context).doesNotHaveBean(LettuceRediSearchClient.class);
-                    assertThat(context).hasBean("stubEntityRediSearchClient");
+                    assertThat(context).hasBean("productEntityRediSearchClient");
                 });
     }
 }
