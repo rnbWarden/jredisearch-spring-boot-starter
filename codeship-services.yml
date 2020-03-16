@@ -1,0 +1,12 @@
+jredisearch-spring-boot-starter:
+  image: java:openjdk-11-jdk
+  #  build:
+  #    image: java:openjdk-11-jdk
+  ##    image: com.rnbwarden/jrediesarch-spring-boot-starter
+  #    dockerfile: Dockerfile
+  depends_on:
+    - redis
+  environment:
+    - REDIS_URL=redis://redis
+redis:
+  image: redislabs/redisearch
