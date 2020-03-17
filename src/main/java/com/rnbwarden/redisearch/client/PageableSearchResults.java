@@ -14,6 +14,12 @@ public interface PageableSearchResults<E extends RedisSearchableEntity> {
     }
 
     @Deprecated
+    default Stream<PagedSearchResult<E>> getResultStream() {
+
+        return parallelStream();
+    }
+
+    @Deprecated
     default Stream<PagedSearchResult<E>> getResultStream(boolean useParallel) {
 
         return useParallel ? parallelStream() : resultStream();
