@@ -18,14 +18,14 @@ Leverages the existing Spring Data Redis properties.
 Within `build.gradle`
 You will need to include the dependency.
 ----
-compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter:5.3.1'
+compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter:6.0.0'
 ----
 Also, you need to pick the client-specific RediSearch dependencies.
 
 For JEDIS
 
 ----
-    compile 'org.springframework.data:spring-data-redis:2.2.4.RELEASE'
+    compile 'org.springframework.data:spring-data-redis:2.2.5.RELEASE'
     compile 'redis.clients:jedis:3.2.0'
     compile 'com.redislabs:jredisearch:1.3.0'
 ----
@@ -33,9 +33,9 @@ For JEDIS
 for LETTUCE
 
 ----
-    compile 'org.springframework.data:spring-data-redis:2.2.4.RELEASE'
-    compile 'com.redislabs:lettusearch:1.12.3'
-    compile ('com.redislabs:spring-redisearch:1.12.1') {
+    compile 'org.springframework.data:spring-data-redis:2.2.5.RELEASE'
+    compile 'com.redislabs:lettusearch:1.13.0'
+    compile ('com.redislabs:spring-redisearch:1.12.8') {
         exclude group: 'com.redislabs', module: 'lettusearch'
     }
 ----
@@ -56,31 +56,24 @@ Annotate your fields on RediSearch beans as follows:
 ----
 
 example
+
 [source,java]
 ----
 @RediSearchField(name= CartType.SHOPPING, type = RediSearchFieldType.TAG)
 private CartType type;
 ----
 
-At runtime a RedisearchClient (of RedisearchClient<{your-entity-type}>) will be created for your entity and the corresponding index created at application startup.
+At runtime a RedisearchClient (of RedisearchClient<{`specific-entity-type`}>) will be created for your entity and the corresponding index created at application startup.
 This RediSearchClient bean will be injected into the Spring BeanFactory as follows:
 
   "{simpleName}" + RediSearchClient
 
 ...where simpleName is the lower camel case version of the Entity class simple name.
-
-Finally to enable the AutoConfiguration your application must bootstrap the config early enough in the application bootstrapping to satisfy all dependencies. Spring *will not* see this config as required because it mutates the application context without Spring being aware.
-The easiest and most straightforward way of doing this is to include the following annotation on the classes with the RediSearchClient dependencies.
-
-[source,java]
-----
-@DependsOn("RediSearchAutoConfiguration")
-----
-
 == Serialization
+
 The starter uses Jackson to serialize the RediSearch entities.
 By default it's assumed the application has a `com.fasterxml.jackson.databind.ObjectMapper` configured and uses this ObjectMapper.
-If one is not supplied by the application the starter will create a (default) one.
+If one is not supplied by the application the starter will create one.
 If you wish to supply a specific bean for Redis serialization (ex: use a different ObjectMapper for the application and for redis serialization) you can supply one specifically for RediSearch by create a bean named `rediSearchObjectMapper`.
 
 == References
