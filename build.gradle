@@ -10,6 +10,7 @@ plugins {
     id 'idea'
     id "io.freefair.lombok" version "4.1.6"
     id "nebula.release" version "14.1.0"
+    id "com.jfrog.bintray" version "1.8.4"
 }
 
 repositories {
@@ -87,3 +88,25 @@ task generatePom {
     }
 }
 build.dependsOn(generatePom)
+
+bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('bintrayUser')
+    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('bintrayApiKey')
+
+//    configurations = ['published', 'archives']
+    configurations = ['archives']
+    //dryRun = true //[Default: false] Whether to run this as dry-run, without deploying
+    publish = true //[Default: false] Whether version should be auto published after an upload
+    override = true //[Default: false] Whether to override version artifacts already published
+    pkg {
+        repo = 'maven'
+        userOrg = 'rnbwarden' //An optional organization name when the repo belongs to one of the user's orgs
+        name = 'jredisearch-spring-boot-starter'
+        websiteUrl = 'https://github.com/rnbWarden/jredisearch-spring-boot-starter'
+        issueTrackerUrl = 'https://github.com/rnbWarden/jredisearch-spring-boot-starter/issues'
+        vcsUrl = 'https://github.com/rnbWarden/jredisearch-spring-boot-starter.git'
+        licenses = ['Apache-2.0']
+        labels = ['redisearch', 'java', 'spring']
+        publicDownloadNumbers = true
+    }
+}

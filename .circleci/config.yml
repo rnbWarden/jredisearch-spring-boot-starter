@@ -21,7 +21,7 @@ jobs:
       # Customize the JVM maximum heap limit
       JVM_OPTS: -Xmx3200m
       TERM: dumb
-      REDIS_URL: redis://redis
+#      REDIS_URL: redis://redis
       
     steps:
       - checkout
@@ -33,6 +33,7 @@ jobs:
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
 
+      #      - run: gradle tasks
       - run: gradle dependencies
 
       - save_cache:
@@ -40,9 +41,8 @@ jobs:
             - ~/.gradle
           key: v1-dependencies-{{ checksum "build.gradle" }}
 
-      # run tests!
+      # run tests
       - run: gradle test
-      
-      #bintray upload
-      - run: gradle bintrayUpload
 
+      # bintray upload
+      - run: gradle bintrayUpload
