@@ -12,7 +12,7 @@ import redis.clients.jedis.Jedis;
 
 @Configuration("RediSearchJedisClientAutoConfiguration")
 @ConditionalOnClass({GenericObjectPool.class, JedisConnection.class, Jedis.class, Client.class})
-@ComponentScan(basePackages = "com.rnbwarden.redisearch.autoconfig")
+@ComponentScan(basePackages = "com.rnbwarden.redisearch.config.autoconfig")
 public class RediSearchJedisClientAutoConfiguration extends AbstractRediSearchClientAutoConfiguration {
 
     @Override
