@@ -181,7 +181,7 @@ public class LettuceTest {
         saveProductsInRange(max, namePrefix, brand);
         assertEquals(max, lettuceRediSearchClient.getKeyCount(), 0);
 
-        Set<ProductEntity> products = lettuceRediSearchClient.findAll(Integer.MAX_VALUE).resultStream()
+        Set<ProductEntity> products = lettuceRediSearchClient.findAll(1000000).resultStream()
                 .map(PagedSearchResult::getResult)
                 .map(Optional::get)
                 .collect(Collectors.toSet());
@@ -203,7 +203,7 @@ public class LettuceTest {
 
         PagingSearchContext pagingSearchContext = new PagingSearchContext();
         pagingSearchContext.setSortBy(ARTICLE_NUMBER);
-        pagingSearchContext.setSortAscending(false);
+        pagingSearchContext.setSortAscending(true);
         PageableSearchResults<ProductEntity> searchResults = lettuceRediSearchClient.findAll(pagingSearchContext);
 
         List<ProductEntity> products = searchResults.resultStream()
