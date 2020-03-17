@@ -45,4 +45,4 @@ jobs:
       - run: gradle test
 
       # bintray upload
-      - run: gradle bintrayUpload
+      - run: gradle final bintrayUpload
