@@ -42,6 +42,7 @@ jobs:
 
       # run tests!
       - run: gradle test
+      
+      #bintray upload
+      - run: gradle bintrayUpload
 
-      - store_test_results:
-          path: test-results
