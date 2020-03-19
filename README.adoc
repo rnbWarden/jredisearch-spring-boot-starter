@@ -35,7 +35,7 @@ for LETTUCE
 ----
     compile 'org.springframework.data:spring-data-redis:2.2.5.RELEASE'
     compile 'com.redislabs:lettusearch:1.13.0'
-    compile ('com.redislabs:spring-redisearch:1.12.8') {
+    compile ('com.redislabs:spring-redisearch:1.13.0') {
         exclude group: 'com.redislabs', module: 'lettusearch'
     }
 ----
