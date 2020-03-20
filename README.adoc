@@ -18,7 +18,7 @@ Leverages the existing Spring Data Redis properties.
 Within `build.gradle`
 You will need to include the dependency.
 ----
-compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter:6.0.0'
+compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter:6.X.0'
 ----
 Also, you need to pick the client-specific RediSearch dependencies.
 
