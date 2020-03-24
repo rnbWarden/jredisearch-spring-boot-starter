@@ -9,18 +9,21 @@
 This starter provides a Spring Boot starter to handle setup and configuration of JRediSearch clients and indexes.
 It includes functionality for creating RediSearchClients for annotated RediSearchEntities. The RediSearchClient is an abstraction layer that provides CRUD operations on top of the client-specific RediSearch implementation.
 
-
 == Configuration
 Leverages the existing Spring Data Redis properties.
 
 *Supports both Jedis & Lettuce*
 
-Within `build.gradle`
-You will need to include the dependency.
+You will need to include the dependency from JCenter
+
+Releases available here
+https://bintray.com/beta/#/rnbwarden/maven/jredisearch-spring-boot-starter
+
 ----
 compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter:6.X.0'
 ----
-Also, you need to pick the client-specific RediSearch dependencies.
+
+Additionally the following  client-specific RediSearch dependencies are required.
 
 For JEDIS
 
