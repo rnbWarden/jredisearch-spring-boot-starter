@@ -45,7 +45,7 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
     @Override
     public Long getTotalResults() {
 
-        return ofNullable(delegate).map(AggregateWithCursorResults::count).orElse(0L);
+        return ofNullable(delegate).map(AggregateWithCursorResults::getCount).orElse(0L);
     }
 
     @Override

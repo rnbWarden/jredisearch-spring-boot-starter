@@ -37,6 +37,18 @@ public interface RediSearchClient<E extends RedisSearchableEntity> {
 
     SearchContext getSearchContextWithFields(Map<String, String> fieldNameValues);
 
+//    default SearchContext getSearchContextWithFields(String fieldName, Collection<String> fieldValues) {
+//
+//        PagingSearchContext pagingSearchContext = new PagingSearchContext();
+//        pagingSearchContext.addField(getField(fieldName), fieldValues);
+//        return pagingSearchContext;
+//    }
+//
+//    default void addField(SearchContext searchContext, String fieldName, String value) {
+//
+//        searchContext.addField(getField(fieldName), value);
+//    }
+
     List<E> findByKeys(Collection<String> keys);
 
     SearchResults<E> find(SearchContext searchContext);

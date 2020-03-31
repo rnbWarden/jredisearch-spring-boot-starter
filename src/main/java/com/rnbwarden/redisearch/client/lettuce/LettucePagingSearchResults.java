@@ -1,6 +1,6 @@
 package com.rnbwarden.redisearch.client.lettuce;
 
-import com.redislabs.lettusearch.search.SearchResult;
+import com.redislabs.lettusearch.search.Document;
 import com.redislabs.lettusearch.search.SearchResults;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
 import com.rnbwarden.redisearch.client.PagedSearchResult;
@@ -31,7 +31,7 @@ public class LettucePagingSearchResults<E extends RedisSearchableEntity> impleme
     @Override
     public Long getTotalResults() {
 
-        return delegate.count();
+        return delegate.getCount();
     }
 
     @Override
@@ -46,15 +46,15 @@ public class LettucePagingSearchResults<E extends RedisSearchableEntity> impleme
         return getResultStream(delegate.parallelStream());
     }
 
-    Stream<PagedSearchResult<E>> getResultStream(Stream<SearchResult<String, Object>> stream) {
+    Stream<PagedSearchResult<E>> getResultStream(Stream<Document<String, Object>> stream) {
 
         return stream
                 .filter(Objects::nonNull)
                 .map(this::createSearchResult);
     }
 
-    private PagedSearchResult<E> createSearchResult(com.redislabs.lettusearch.search.SearchResult<String, Object> searchResult) {
+    private PagedSearchResult<E> createSearchResult(com.redislabs.lettusearch.search.Document<String, Object> searchResult) {
 
-        return new LettucePagedSearchResult<>(keyPrefix, searchResult.documentId(), lettuceRediSearchClient, exceptionConsumer);
+        return new LettucePagedSearchResult<>(keyPrefix, searchResult.getId(), lettuceRediSearchClient, exceptionConsumer);
     }
 }
