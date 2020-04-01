@@ -2,9 +2,12 @@ package com.rnbwarden.redisearch.client.lettuce;
 
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
 import com.redislabs.lettusearch.aggregate.*;
-import com.redislabs.lettusearch.search.Limit;
+import com.redislabs.lettusearch.index.CreateOptions;
+import com.redislabs.lettusearch.index.DropOptions;
+import com.redislabs.lettusearch.index.Schema;
+import com.redislabs.lettusearch.index.field.FieldOptions;
 import com.redislabs.lettusearch.search.*;
-import com.redislabs.lettusearch.search.field.FieldOptions;
+import com.redislabs.lettusearch.search.Limit;
 import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
 import com.rnbwarden.redisearch.client.context.PagingSearchContext;
@@ -57,14 +60,14 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         StatefulRediSearchConnection<String, String> uncompressedConnection = null;
         try {
             uncompressedConnection = rediSearchClient.connect();
-            uncompressedConnection.sync().indexInfo(index);
+            uncompressedConnection.sync().ftInfo(index);
             alterSortableFields(uncompressedConnection);
         } catch (RedisCommandExecutionException ex) {
             if (uncompressedConnection == null) {
                 throw ex;
             }
             if (ex.getCause().getMessage().equals("Unknown Index name")) {
-                uncompressedConnection.sync().create(index, createSchema());
+                uncompressedConnection.sync().create(index, createSchema(), CreateOptions.builder().build());
             }
         } finally {
             if (uncompressedConnection != null) {
@@ -80,8 +83,8 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         getFields().stream()
                 .map(SearchableLettuceField::getField)
-                .filter(com.redislabs.lettusearch.search.field.Field::isSortable)
-                .map(com.redislabs.lettusearch.search.field.Field::getName)
+                .filter(com.redislabs.lettusearch.index.field.Field::isSortable)
+                .map(com.redislabs.lettusearch.index.field.Field::getName)
                 .forEach(fieldName -> connection.sync().alter(index, fieldName, FieldOptions.builder().sortable(true).build()));
     }
 
@@ -154,7 +157,11 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         Map<String, Object> fields = serialize(entity);
         String key = getQualifiedKey(entity.getPersistenceKey());
-        execute(connection -> connection.sync().add(index, key, 1, fields, null, AddOptions.builder().replace(true).build()));
+        Document<String, Object> document = new Document<>(key, 1.0, null);
+        document.putAll(fields);
+        execute(connection -> {
+            return connection.sync().add(index, document, AddOptions.builder().replace(true).build());
+        });
     }
 
     @Override

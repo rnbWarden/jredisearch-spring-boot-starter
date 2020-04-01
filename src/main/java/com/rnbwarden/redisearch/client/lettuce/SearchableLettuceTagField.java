@@ -1,6 +1,6 @@
 package com.rnbwarden.redisearch.client.lettuce;
 
-import com.redislabs.lettusearch.search.field.TagField;
+import com.redislabs.lettusearch.index.field.TagField;
 import com.rnbwarden.redisearch.client.SearchableTagField;
 
 import java.util.function.Function;
