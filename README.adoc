@@ -20,7 +20,7 @@ Releases available here
 https://bintray.com/beta/#/rnbwarden/maven/jredisearch-spring-boot-starter
 
 ----
-compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter:6.X.0'
+compile 'com.rnbwarden.redisearch:jredisearch-spring-boot-starter:7.X.Y'
 ----
 
 Additionally the following  client-specific RediSearch dependencies are required.
