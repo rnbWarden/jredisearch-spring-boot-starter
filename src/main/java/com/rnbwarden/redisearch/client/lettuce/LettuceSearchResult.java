@@ -6,13 +6,13 @@ import java.util.Map;
 
 public class LettuceSearchResult<K extends String, V> implements SearchResult<K, V> {
 
-    private final com.redislabs.lettusearch.search.SearchResult<K, V> delegate;
+    private final com.redislabs.lettusearch.search.Document<K, V> delegate;
     private final String keyPrefix;
 
-    LettuceSearchResult(String keyPrefix, com.redislabs.lettusearch.search.SearchResult<K, V> searchResult) {
+    LettuceSearchResult(String keyPrefix, com.redislabs.lettusearch.search.Document<K, V> document) {
 
         this.keyPrefix = keyPrefix;
-        this.delegate = searchResult;
+        this.delegate = document;
     }
 
     @Override
@@ -31,7 +31,7 @@ public class LettuceSearchResult<K extends String, V> implements SearchResult<K,
     @SuppressWarnings("unchecked")
     public K getId() {
 
-        String documentId = delegate.documentId();
+        String documentId = delegate.getId();
         String key = documentId.substring(keyPrefix.length());
         return (K) key;
     }

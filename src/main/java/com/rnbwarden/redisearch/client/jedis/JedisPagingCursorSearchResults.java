@@ -1,9 +1,9 @@
-package com.rnbwarden.redisearch.client.lettuce;
+package com.rnbwarden.redisearch.client.jedis;
 
-import com.redislabs.lettusearch.aggregate.AggregateWithCursorResults;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
 import com.rnbwarden.redisearch.client.PagedSearchResult;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
+import io.redisearch.AggregationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,22 +18,22 @@ import java.util.stream.StreamSupport;
 
 import static java.util.Optional.ofNullable;
 
-public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> implements PageableSearchResults<E> {
+public class JedisPagingCursorSearchResults<E extends RedisSearchableEntity> implements PageableSearchResults<E> {
 
-    private final Logger logger = LoggerFactory.getLogger(LettucePagingCursorSearchResults.class.getName());
+    private final Logger logger = LoggerFactory.getLogger(JedisPagingCursorSearchResults.class.getName());
 
-    private AggregateWithCursorResults<String, Object> delegate;
-    private final Supplier<AggregateWithCursorResults<String, Object>> nextPageSupplier;
+    private AggregationResult delegate;
+    private final Supplier<AggregationResult> nextPageSupplier;
     private final Function<Map<String, Object>, E> deserializeFunction;
     private final Closeable closeable;
     private final ResultsIterator iterator;
     private final Consumer<Exception> exceptionConsumer;
 
-    LettucePagingCursorSearchResults(AggregateWithCursorResults<String, Object> delegate,
-                                     Supplier<AggregateWithCursorResults<String, Object>> nextPageSupplier,
-                                     Function<Map<String, Object>, E> deserializeFunction,
-                                     Closeable closeable,
-                                     Consumer<Exception> exceptionConsumer) {
+    JedisPagingCursorSearchResults(AggregationResult delegate,
+                                   Supplier<AggregationResult> nextPageSupplier,
+                                   Function<Map<String, Object>, E> deserializeFunction,
+                                   Closeable closeable,
+                                   Consumer<Exception> exceptionConsumer) {
 
         this.nextPageSupplier = nextPageSupplier;
         this.deserializeFunction = deserializeFunction;
@@ -45,7 +45,7 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
     @Override
     public Long getTotalResults() {
 
-        return ofNullable(delegate).map(AggregateWithCursorResults::getCount).orElse(0L);
+        return ofNullable(delegate).map(aggregationResult -> aggregationResult.totalResults).orElse(0L);
     }
 
     @Override
@@ -74,7 +74,9 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
     private void close() {
 
         try {
-            closeable.close();
+            if (closeable != null) {
+                closeable.close();
+            }
         } catch (Exception e) {
             logger.warn("Error closing PagingCursorSearchResults {}", e.getMessage(), e);
         }
@@ -85,7 +87,7 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
         try {
 
             E entity = deserializeFunction.apply(fields);
-            return new LettucePagedCursorSearchResult<>(entity);
+            return new JedisPagedCursorSearchResult<>(entity);
         } catch (Exception e) {
             if (exceptionConsumer != null) {
                 exceptionConsumer.accept(e);
@@ -101,15 +103,15 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
         private volatile boolean hasNext;
         private volatile ConcurrentLinkedQueue<Map<String, Object>> results = new ConcurrentLinkedQueue<>();
 
-        ResultsIterator(AggregateWithCursorResults<String, Object> delegate) {
+        ResultsIterator(AggregationResult delegate) {
 
             populateResultsFromAggregateResults(delegate);
         }
 
-        private void populateResultsFromAggregateResults(AggregateWithCursorResults<String, Object> delegate) {
+        private void populateResultsFromAggregateResults(AggregationResult delegate) {
 
-            LettucePagingCursorSearchResults.this.delegate = delegate;
-            ofNullable(delegate).ifPresent(this.results::addAll);
+            JedisPagingCursorSearchResults.this.delegate = delegate;
+            ofNullable(delegate).map(AggregationResult::getResults).ifPresent(this.results::addAll);
             hasNext = !results.isEmpty();
         }
 

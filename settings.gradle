@@ -1,1 +1,4 @@
+//include ":lettusearch"
+//project(":lettusearch").projectDir = file("../lettusearch")
+
 rootProject.name = 'jredisearch-spring-boot-starter'

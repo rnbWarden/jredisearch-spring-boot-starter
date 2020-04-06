@@ -7,10 +7,9 @@ import com.rnbwarden.redisearch.client.context.PagingSearchContext;
 import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
-import io.redisearch.Document;
-import io.redisearch.Query;
-import io.redisearch.Schema;
-import io.redisearch.SearchResult;
+import io.redisearch.*;
+import io.redisearch.aggregation.AggregationBuilder;
+import io.redisearch.aggregation.SortedField;
 import io.redisearch.client.Client;
 import io.redisearch.querybuilder.QueryNode;
 import lombok.NonNull;
@@ -42,7 +41,6 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         checkAndCreateIndex();
     }
 
-    @SuppressWarnings("unchecked")
     protected SearchableJedisField<E> createSearchableField(RediSearchFieldType type,
                                                             String name,
                                                             boolean sortable,
@@ -52,10 +50,10 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
             throw new IllegalArgumentException(format("Field name '%s' is not protected! Please use another name.", name));
         }
         if (type == RediSearchFieldType.TEXT) {
-            return new SearchableJedisTextField(name, sortable, serializationFunction);
+            return new SearchableJedisTextField<>(name, sortable, serializationFunction);
         }
         if (type == RediSearchFieldType.TAG) {
-            return new SearchableJedisTagField(name, sortable, serializationFunction);
+            return new SearchableJedisTagField<>(name, sortable, serializationFunction);
         }
         throw new IllegalArgumentException(format("field type '%s' is not supported", type));
     }
@@ -133,12 +131,12 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
-    public SearchResults<E> find(SearchContext context) {
+    public SearchResults<E> find(SearchContext<E> context) {
 
         return performTimedOperation("search", () -> search(buildQuery(context)));
     }
 
-    private Query buildQuery(SearchContext searchContext) {
+    private Query buildQuery(SearchContext<E> searchContext) {
 
         QueryNode node = intersect();
         searchContext.getQueryFields().forEach(queryField -> node.add(queryField.getName(), queryField.getQuerySyntax()));
@@ -148,7 +146,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         return query;
     }
 
-    private void configureQueryOptions(SearchContext searchContext, Query query) {
+    private void configureQueryOptions(SearchContext<E> searchContext, Query query) {
 
         if (searchContext.isNoContent()) {
             query.setNoContent();
@@ -158,14 +156,13 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
-    protected SearchResults<E> search(String queryString, SearchContext searchContext) {
+    protected SearchResults<E> search(String queryString, SearchContext<E> searchContext) {
 
         Query query = new Query(queryString);
         configureQueryOptions(searchContext, query);
         return search(query);
     }
 
-    @SuppressWarnings("unchecked")
     private SearchResults<E> search(Query query) {
 
         return new JedisSearchResults<>(keyPrefix, performJedisSearch(query));
@@ -179,42 +176,97 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     }
 
     @Override
-    public PageableSearchResults<E> search(PagingSearchContext pagingSearchContext) {
-
-        return performTimedOperation("search", () -> performPagedJedisSearch(buildQuery(pagingSearchContext), pagingSearchContext));
-    }
-
-    @Override
-    protected PageableSearchResults<E> pagingSearch(String queryString, PagingSearchContext pagingSearchContext) {
-
-        assert (pagingSearchContext != null);
-
-        //aggregateSearch(queryString, searchContext);
+    public PageableSearchResults<E> search(PagingSearchContext<E> pagingSearchContext) {
 
         return performTimedOperation("search", () -> {
-            Query query = new Query(queryString);
-            configureQueryOptions(pagingSearchContext, query);
-            return performPagedJedisSearch(query, pagingSearchContext);
+            return pagingSearchContext.isUseClientSidePaging() ?
+                    clientSidePagingSearch(buildQuery(pagingSearchContext), pagingSearchContext) :
+                    aggregateSearch(buildQueryString(pagingSearchContext), pagingSearchContext);
         });
     }
 
-    private JedisPagingSearchResults<E> performPagedJedisSearch(Query query, PagingSearchContext pagingSearchContext) {
+    @Override
+    protected PageableSearchResults<E> clientSidePagingSearch(String queryString, PagingSearchContext<E> pagingSearchContext) {
 
-        return new JedisPagingSearchResults<>(performJedisSearch(query), this, pagingSearchContext.getExceptionHandler());
+        return clientSidePagingSearch(new Query(queryString), pagingSearchContext);
     }
 
-/**
- private void aggregateSearch(String queryString, SearchContext searchContext) {
+    private JedisPagingSearchResults<E> clientSidePagingSearch(Query query, PagingSearchContext<E> pagingSearchContext) {
 
- AggregationRequest aggregationRequest = new AggregationRequest(queryString)
- .limit(searchContext.getLimit().intValue());
+        return performTimedOperation("search", () -> {
+            configureQueryOptions(pagingSearchContext, query);
+            return new JedisPagingSearchResults<>(performJedisSearch(query), this, pagingSearchContext.getExceptionHandler());
+        });
+    }
 
- ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> {
- SortedField sortedField = new SortedField(sortBy, searchContext.isSortAscending() ? SortedField.SortOrder.ASC : SortedField.SortOrder.DESC);
- aggregationRequest.sortBy(sortedField);
- });
+    @Override
+    protected PageableSearchResults<E> aggregateSearch(String queryString, PagingSearchContext<E> searchContext) {
 
- AggregationResult aggregationResult = jRediSearchClient.aggregate(aggregationRequest);
- }
- */
+        AggregationBuilder aggregationBuilder = new AggregationBuilder(queryString)
+                .limit((int)(searchContext.getLimit()))
+                .cursor((int)searchContext.getPageSize(), Integer.MAX_VALUE);
+
+        ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> {
+            SortedField sortedField = new SortedField("@" + sortBy, //<-- TODO: fix this nonsense <barf>
+                    searchContext.isSortAscending() ? SortedField.SortOrder.ASC : SortedField.SortOrder.DESC);
+            aggregationBuilder.sortBy(sortedField);
+        });
+        aggregationBuilder.load(SERIALIZED_DOCUMENT);
+
+        int pageSize = (int)searchContext.getPageSize();
+
+        //TODO: devoted connection for cursor. This is required for clustered nodes where cursors are lost
+//        StatefulRediSearchConnection<String, Object> connection = connectionSupplier.get();
+        try {
+            AggregationResult aggregationResult = jRediSearchClient.aggregate(aggregationBuilder);
+            return new JedisPagingCursorSearchResults<>(aggregationResult,
+                    () -> readCursor(aggregationResult.getCursorId(), pageSize),
+                    this::deserialize,
+                    null, //() -> closeCursor(connection, aggregateResults.getCursor()),
+                    searchContext.getExceptionHandler());
+        } catch (Exception e) {
+            //close(connection);
+            throw (e);
+        }
+    }
+
+    private AggregationResult readCursor(long cursor, int count) {
+
+        if (cursor == 0) {
+            return null;
+        }
+        try {
+            return jRediSearchClient.cursorRead(cursor, count);
+        } catch (JedisDataException jedisDataException) {
+            //closeCursor(connection, cursor);
+            if ("Cursor not found".equalsIgnoreCase(jedisDataException.getMessage())) {
+                return null;
+            }
+            closeCursor(cursor);
+            throw (jedisDataException);
+        }
+    }
+
+    private void closeCursor(long cursor) {
+
+        try {
+            jRediSearchClient.cursorDelete(cursor);
+        } catch (Exception e) {
+            logger.warn("Error closing RediSearch cursor. " + e.getMessage(), e);
+        }
+        //close(connection);
+    }
+
+    /**
+    private void close(StatefulRediSearchConnection<String, Object> connection) {
+
+        try {
+            if (connection != null && connection.isOpen()) {
+                connection.close();
+            }
+        } catch (Exception e) {
+            logger.warn("Error closing RediSearch connection. " + e.getMessage(), e);
+        }
+    }
+    */
 }

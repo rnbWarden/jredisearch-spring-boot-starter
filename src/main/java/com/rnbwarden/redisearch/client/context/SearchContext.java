@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class SearchContext {
+public class SearchContext<E> {
 
     public static final Long DEFAULT_MAX_LIMIT_VALUE = 1000000L;
 
@@ -39,27 +39,27 @@ public class SearchContext {
     @Builder.Default
     private List<QueryField> queryFields = new ArrayList<>();
 
-    public void addField(SearchableField field, String value) {
+    public void addField(SearchableField<E> field, String value) {
 
         queryFields.add(new QueryField(field, value));
     }
 
-    public void addField(SearchableField field, String... values) {
+    public void addField(SearchableField<E> field, String... values) {
 
         addField(field, Stream.of(values).collect(Collectors.toList()));
     }
 
-    public void addField(SearchableField field, Collection<String> values) {
+    public void addField(SearchableField<E> field, Collection<String> values) {
 
         addField(field, SearchOperator.UNION, values);
     }
 
-    public void addField(SearchableField field, SearchOperator operator, String... values) {
+    public void addField(SearchableField<E> field, SearchOperator operator, String... values) {
 
         addField(field, operator, Stream.of(values).collect(Collectors.toList()));
     }
 
-    public void addField(SearchableField field, SearchOperator operator, Collection<String> values) {
+    public void addField(SearchableField<E> field, SearchOperator operator, Collection<String> values) {
 
         queryFields.add(new QueryField(field, values, operator));
     }

@@ -1,6 +1,6 @@
 package com.rnbwarden.redisearch.client.lettuce;
 
-import com.redislabs.lettusearch.search.field.Field;
+import com.redislabs.lettusearch.index.field.Field;
 import com.rnbwarden.redisearch.entity.SearchableField;
 
 import java.util.function.Function;
@@ -14,7 +14,7 @@ public abstract class SearchableLettuceField<E> extends SearchableField<E> {
                            String querySyntax,
                            Field field) {
 
-        super(name, serializeFunction, querySyntax, field.sortable());
+        super(name, serializeFunction, querySyntax, field.isSortable());
         this.field = field;
     }
 

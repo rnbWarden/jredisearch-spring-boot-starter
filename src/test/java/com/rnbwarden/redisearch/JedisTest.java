@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class JedisTest {
 
     private JedisRediSearchClient<ProductEntity> jedisRediSearchClient;
+    private Client rediSearchClient;
 
     @Before
     public void setUp() {
@@ -52,7 +53,7 @@ public class JedisTest {
 
         Class<ProductEntity> clazz = ProductEntity.class;
         RedisSerializer<ProductEntity> redisSerializer = new CompressingJacksonSerializer<>(clazz, new ObjectMapper());
-        Client rediSearchClient = new Client("stub", "localhost", 6379);
+        rediSearchClient = new Client("product", "localhost", 6379);
         jedisRediSearchClient = new JedisRediSearchClient<>(clazz, rediSearchClient, redisSerializer, 1000L);
     }
 
@@ -83,11 +84,11 @@ public class JedisTest {
         List<ProductEntity> resultEntities = jedisRediSearchClient.deserialize(searchResults);
         assertEquals(product1, resultEntities.get(0));
 
-        SearchContext searchContext = new SearchContext();
+        SearchContext<ProductEntity> searchContext = new SearchContext<>();
         searchContext.addField(jedisRediSearchClient.getField(SKUS), SearchOperator.INTERSECTION, "f01", "f02");
         assertEquals(1, jedisRediSearchClient.find(searchContext).getResults().size());
 
-        searchContext = new SearchContext();
+        searchContext = new SearchContext<>();
         searchContext.addField(jedisRediSearchClient.getField(SKUS), SearchOperator.UNION, "f01", "b02");
         assertEquals(2, jedisRediSearchClient.find(searchContext).getResults().size());
     }
@@ -109,7 +110,41 @@ public class JedisTest {
 
         assertEquals(max + 1, jedisRediSearchClient.getKeyCount(), 0);
 
-        PagingSearchContext pagingSearchContext = jedisRediSearchClient.getPagingSearchContextWithFields(Map.of(BRAND, Brand.ADIDAS.toString()));
+        PagingSearchContext<ProductEntity> pagingSearchContext = jedisRediSearchClient.getPagingSearchContextWithFields(Map.of(BRAND, Brand.ADIDAS.toString()));
+        PageableSearchResults<ProductEntity> searchResults = jedisRediSearchClient.search(pagingSearchContext);
+
+        List<ProductEntity> products = searchResults.resultStream()
+                .map(PagedSearchResult::getResult)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+
+        assertEquals(max, products.size());
+        products.forEach(product -> {
+            assertTrue(product.getId().startsWith("id"));
+            assertTrue(product.getArticleNumber().startsWith(namePrefix));
+            assertEquals(brand, product.getBrand());
+        });
+    }
+
+    @Test
+    public void testClientSidePaging() {
+
+        int max = 10000;
+        String namePrefix = "FALCON-";
+        Brand brand = Brand.ADIDAS;
+
+        assertEquals(0, jedisRediSearchClient.getKeyCount(), 0);
+
+        jedisRediSearchClient.save(new ProductEntity("id123", "FALCON01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99")))));
+
+        saveProductsInRange(max, namePrefix, brand);
+
+        assertEquals(max + 1, jedisRediSearchClient.getKeyCount(), 0);
+
+        PagingSearchContext<ProductEntity> pagingSearchContext = jedisRediSearchClient.getPagingSearchContextWithFields(Map.of(BRAND, Brand.ADIDAS.toString()));
+        pagingSearchContext.setUseClientSidePaging(true);
         PageableSearchResults<ProductEntity> searchResults = jedisRediSearchClient.search(pagingSearchContext);
 
         List<ProductEntity> products = searchResults.resultStream()
@@ -134,25 +169,47 @@ public class JedisTest {
     }
 
     @Test
+    public void testFindAll() {
+
+        int max = 3726;
+        String namePrefix = "FALCON-";
+        Brand brand = Brand.NIKE;
+
+        assertEquals(0, jedisRediSearchClient.getKeyCount(), 0);
+        saveProductsInRange(max, namePrefix, brand);
+        assertEquals(max, jedisRediSearchClient.getKeyCount(), 0);
+
+        Set<ProductEntity> products = jedisRediSearchClient.findAll(1000000).resultStream()
+                .map(PagedSearchResult::getResult)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+
+        assertEquals(max, products.size());
+    }
+
+    @Test
     public void testSorting() {
 
         assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
-        int max = 5000;
-        int expected = max + 2;
+        int max = 1000;
+
         jedisRediSearchClient.save(new ProductEntity("id-ZZZ01", "ZZZ01", Brand.NIKE, Collections.emptyList()));
-        saveProductsInRange(max, "TEST-", Brand.NIKE);
+        saveProductsInRange(max - 2, "TEST-", Brand.NIKE);
         jedisRediSearchClient.save(new ProductEntity("id-AAA01", "AAA01", Brand.NIKE, Collections.emptyList()));
 
-        assertEquals(expected, jedisRediSearchClient.getKeyCount(), 0);
+        assertEquals(max, jedisRediSearchClient.getKeyCount(), 0);
 
-        PageableSearchResults<ProductEntity> searchResults = jedisRediSearchClient.findAll(max * 2);
-        assertEquals(expected, searchResults.resultStream().count());
+        PagingSearchContext<ProductEntity> pagingSearchContext = new PagingSearchContext<>();
+        pagingSearchContext.setSortBy(ARTICLE_NUMBER);
+        pagingSearchContext.setSortAscending(true);
+        PageableSearchResults<ProductEntity> searchResults = jedisRediSearchClient.findAll(pagingSearchContext);
 
         List<ProductEntity> products = searchResults.resultStream()
                 .map(PagedSearchResult::getResult)
                 .map(Optional::get)
                 .collect(Collectors.toList());
 
+        assertEquals(max, products.size());
         assertTrue(products.get(0).getArticleNumber().startsWith("AAA"));
         assertTrue(products.get(products.size() - 1).getArticleNumber().startsWith("ZZZ"));
     }
@@ -187,5 +244,17 @@ public class JedisTest {
                 .filter(key -> !key.equals(fetchKeys.get(fetchKeys.size() - 1)))
                 .forEach(key -> assertNotNull(resultsMap.get(key)));
 
+    }
+
+    @Test
+    public void testKeyCountPagingSearchContext() {
+
+        int keySize = 23464;
+        saveProductsInRange(keySize, "TEST-", Brand.NIKE);
+
+        PagingSearchContext<ProductEntity> pagingSearchContext = jedisRediSearchClient.getPagingSearchContextWithFields(Map.of(ProductEntity.BRAND, Brand.NIKE.toString()));
+        pagingSearchContext.setPageSize(100000L);
+        Long keyCount = jedisRediSearchClient.getKeyCount(pagingSearchContext);
+        assertEquals(keySize, keyCount, 0);
     }
 }

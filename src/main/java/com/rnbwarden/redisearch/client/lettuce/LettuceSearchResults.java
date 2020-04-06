@@ -23,7 +23,7 @@ public class LettuceSearchResults<E extends RedisSearchableEntity> implements Se
     @Override
     public Long getTotalResults() {
 
-        return delegate.count();
+        return delegate.getCount();
     }
 
     @Override
@@ -35,8 +35,8 @@ public class LettuceSearchResults<E extends RedisSearchableEntity> implements Se
                 .collect(toList());
     }
 
-    private LettuceSearchResult<String, Object> createSearchResult(com.redislabs.lettusearch.search.SearchResult<String, Object> searchResult) {
+    private LettuceSearchResult<String, Object> createSearchResult(com.redislabs.lettusearch.search.Document<String, Object> document) {
 
-        return new LettuceSearchResult<>(keyPrefix, searchResult);
+        return new LettuceSearchResult<>(keyPrefix, document);
     }
 }

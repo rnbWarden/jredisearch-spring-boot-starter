@@ -62,7 +62,7 @@ public class ProductRepository {
 
     public void searchAndConsume(Map<String, String> fieldNameValues, Consumer<ProductEntity> consumer) {
 
-        PagingSearchContext ctx = rediSearchClient.getPagingSearchContextWithFields(fieldNameValues);
+        PagingSearchContext<ProductEntity> ctx = rediSearchClient.getPagingSearchContextWithFields(fieldNameValues);
         rediSearchClient.search(ctx).resultStream()
                 .map(PagedSearchResult::getResult)
                 .filter(Optional::isPresent)

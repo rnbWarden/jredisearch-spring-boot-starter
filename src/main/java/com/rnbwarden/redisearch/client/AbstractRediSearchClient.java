@@ -185,7 +185,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     }
 
     @Override
-    public Long getKeyCount(PagingSearchContext pagingSearchContext) {
+    public Long getKeyCount(PagingSearchContext<E> pagingSearchContext) {
 
         AtomicLong count = new AtomicLong();
         search(pagingSearchContext).resultStream().forEach(r -> count.incrementAndGet());
@@ -237,17 +237,25 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     }
 
     @Override
-    public SearchContext getSearchContextWithFields(Map<String, String> fieldNameValues) {
+    public SearchContext<E> getSearchContextWithFields(Map<String, String> fieldNameValues) {
 
-        SearchContext searchContext = SearchContext.builder().build();
+        SearchContext<E> searchContext = new SearchContext<>();
         fieldNameValues.forEach((name, value) -> searchContext.addField(getField(name), value));
         return searchContext;
     }
 
     @Override
-    public PagingSearchContext getPagingSearchContextWithFields(Map<String, String> fieldNameValues) {
+    public SearchContext<E> getSearchContextWithFields(String fieldName, Collection<String> fieldValues) {
 
-        PagingSearchContext pagingSearchContext = new PagingSearchContext();
+        PagingSearchContext<E> pagingSearchContext = new PagingSearchContext<>();
+        pagingSearchContext.addField(getField(fieldName), fieldValues);
+        return pagingSearchContext;
+    }
+
+    @Override
+    public PagingSearchContext<E> getPagingSearchContextWithFields(Map<String, String> fieldNameValues) {
+
+        PagingSearchContext<E> pagingSearchContext = new PagingSearchContext<>();
         fieldNameValues.forEach((name, value) -> pagingSearchContext.addField(getField(name), value));
         return pagingSearchContext;
     }
@@ -255,24 +263,43 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     @Override
     public PageableSearchResults<E> findAll(Integer limit) {
 
-        PagingSearchContext pagingSearchContext = new PagingSearchContext();
+        PagingSearchContext<E> pagingSearchContext = new PagingSearchContext<>();
         pagingSearchContext.setLimit(Long.valueOf(ofNullable(limit).orElse(defaultMaxResults.intValue())));
         return findAll(pagingSearchContext);
     }
 
     @Override
-    public PageableSearchResults<E> findAll(PagingSearchContext pagingSearchContext) {
+    public PageableSearchResults<E> findAll(PagingSearchContext<E> pagingSearchContext) {
 
         return performTimedOperation("findAll", () -> pagingSearch(ALL_QUERY, pagingSearchContext));
     }
 
-    protected abstract SearchResults<E> search(String queryString, SearchContext searchContext);
+    protected abstract SearchResults<E> search(String queryString, SearchContext<E> searchContext);
 
-    protected abstract PageableSearchResults<E> pagingSearch(String queryString, PagingSearchContext pagingSearchContext);
+    protected PageableSearchResults<E> pagingSearch(String queryString, PagingSearchContext<E> pagingSearchContext) {
+
+        assert (queryString != null);
+        assert (pagingSearchContext != null);
+        return pagingSearchContext.isUseClientSidePaging() ?
+                clientSidePagingSearch(queryString, pagingSearchContext) :
+                aggregateSearch(queryString, pagingSearchContext);
+    }
+    protected abstract PageableSearchResults<E> clientSidePagingSearch(String queryString, PagingSearchContext<E> pagingSearchContext);
+    protected abstract PageableSearchResults<E> aggregateSearch(String queryString, PagingSearchContext<E> searchContext);
 
     protected String getQualifiedKey(String key) {
 
         return keyPrefix + key;
+    }
+
+    protected String buildQueryString(SearchContext<E> searchContext) {
+
+        List<QueryField> queryFields = searchContext.getQueryFields();
+        StringBuilder sb = new StringBuilder();
+        queryFields.stream()
+                .map(queryField -> format("@%s:%s", queryField.getName(), queryField.getQuerySyntax()))
+                .forEach(sb::append);
+        return sb.toString();
     }
 
 }
