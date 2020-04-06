@@ -22,7 +22,7 @@ public interface RediSearchClient<E extends RedisSearchableEntity> {
 
     Long getKeyCount();
 
-    Long getKeyCount(PagingSearchContext pagingSearchContext);
+    Long getKeyCount(PagingSearchContext<E> pagingSearchContext);
 
     void save(E entity);
 
@@ -35,36 +35,26 @@ public interface RediSearchClient<E extends RedisSearchableEntity> {
         return find(getSearchContextWithFields(fieldNameValues));
     }
 
-    SearchContext getSearchContextWithFields(Map<String, String> fieldNameValues);
+    SearchContext<E> getSearchContextWithFields(Map<String, String> fieldNameValues);
 
-//    default SearchContext getSearchContextWithFields(String fieldName, Collection<String> fieldValues) {
-//
-//        PagingSearchContext pagingSearchContext = new PagingSearchContext();
-//        pagingSearchContext.addField(getField(fieldName), fieldValues);
-//        return pagingSearchContext;
-//    }
-//
-//    default void addField(SearchContext searchContext, String fieldName, String value) {
-//
-//        searchContext.addField(getField(fieldName), value);
-//    }
+    SearchContext<E> getSearchContextWithFields(String fieldName, Collection<String> fieldValues);
 
     List<E> findByKeys(Collection<String> keys);
 
-    SearchResults<E> find(SearchContext searchContext);
+    SearchResults<E> find(SearchContext<E> searchContext);
 
     default PageableSearchResults<E> searchByFields(Map<String, String> fieldNameValues) {
 
         return search(getPagingSearchContextWithFields(fieldNameValues));
     }
 
-    PagingSearchContext getPagingSearchContextWithFields(Map<String, String> fieldNameValues);
+    PagingSearchContext<E> getPagingSearchContextWithFields(Map<String, String> fieldNameValues);
 
-    PageableSearchResults<E> search(PagingSearchContext pagingSearchContext);
+    PageableSearchResults<E> search(PagingSearchContext<E> pagingSearchContext);
 
     PageableSearchResults<E> findAll(Integer limit);
 
-    PageableSearchResults<E> findAll(PagingSearchContext pagingSearchContext);
+    PageableSearchResults<E> findAll(PagingSearchContext<E> pagingSearchContext);
 
     List<E> deserialize(SearchResults<E> searchResults);
 }

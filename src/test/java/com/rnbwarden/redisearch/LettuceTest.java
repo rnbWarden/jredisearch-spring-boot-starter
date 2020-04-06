@@ -86,11 +86,11 @@ public class LettuceTest {
         List<ProductEntity> resultEntities = lettuceRediSearchClient.deserialize(searchResults);
         assertEquals(product1, resultEntities.get(0));
 
-        SearchContext searchContext = new SearchContext();
+        SearchContext<ProductEntity> searchContext = new SearchContext<>();
         searchContext.addField(lettuceRediSearchClient.getField(SKUS), SearchOperator.INTERSECTION, "f01", "f02");
         assertEquals(1, lettuceRediSearchClient.find(searchContext).getResults().size());
 
-        searchContext = new SearchContext();
+        searchContext = new SearchContext<>();
         searchContext.addField(lettuceRediSearchClient.getField(SKUS), SearchOperator.UNION, "f01", "b02");
         assertEquals(2, lettuceRediSearchClient.find(searchContext).getResults().size());
     }
@@ -112,7 +112,7 @@ public class LettuceTest {
 
         assertEquals(max + 1, lettuceRediSearchClient.getKeyCount(), 0);
 
-        PagingSearchContext pagingSearchContext = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(BRAND, Brand.ADIDAS.toString()));
+        PagingSearchContext<ProductEntity> pagingSearchContext = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(BRAND, Brand.ADIDAS.toString()));
         PageableSearchResults<ProductEntity> searchResults = lettuceRediSearchClient.search(pagingSearchContext);
 
         List<ProductEntity> products = searchResults.resultStream()
@@ -145,7 +145,7 @@ public class LettuceTest {
 
         assertEquals(max + 1, lettuceRediSearchClient.getKeyCount(), 0);
 
-        PagingSearchContext pagingSearchContext = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(BRAND, Brand.ADIDAS.toString()));
+        PagingSearchContext<ProductEntity> pagingSearchContext = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(BRAND, Brand.ADIDAS.toString()));
         pagingSearchContext.setUseClientSidePaging(true);
         PageableSearchResults<ProductEntity> searchResults = lettuceRediSearchClient.search(pagingSearchContext);
 
@@ -201,7 +201,7 @@ public class LettuceTest {
 
         assertEquals(max, lettuceRediSearchClient.getKeyCount(), 0);
 
-        PagingSearchContext pagingSearchContext = new PagingSearchContext();
+        PagingSearchContext<ProductEntity> pagingSearchContext = new PagingSearchContext<>();
         pagingSearchContext.setSortBy(ARTICLE_NUMBER);
         pagingSearchContext.setSortAscending(true);
         PageableSearchResults<ProductEntity> searchResults = lettuceRediSearchClient.findAll(pagingSearchContext);
@@ -263,7 +263,7 @@ public class LettuceTest {
         int keySize = 23464;
         saveProductsInRange(keySize, "TEST-", Brand.NIKE);
 
-        PagingSearchContext pagingSearchContext = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(ProductEntity.BRAND, Brand.NIKE.toString()));
+        PagingSearchContext<ProductEntity> pagingSearchContext = lettuceRediSearchClient.getPagingSearchContextWithFields(Map.of(ProductEntity.BRAND, Brand.NIKE.toString()));
         pagingSearchContext.setPageSize(100000L);
         Long keyCount = lettuceRediSearchClient.getKeyCount(pagingSearchContext);
         assertEquals(keySize, keyCount, 0);
