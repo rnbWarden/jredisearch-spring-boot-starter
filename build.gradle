@@ -58,7 +58,7 @@ dependencies {
     //lettuce
     //    compileOnly project(':lettusearch')
     compileOnly 'com.redislabs:lettusearch:2.1.0'
-    compileOnly ('com.redislabs:spring-redisearch:2.0.1') {
+    compileOnly ('com.redislabs:spring-redisearch:2.1.0') {
         exclude group: 'com.redislabs', module: 'lettusearch'
     }
 
