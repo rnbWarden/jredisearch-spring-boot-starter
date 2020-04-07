@@ -45,4 +45,5 @@ jobs:
       - run: gradle test
 
       # bintray upload
-      - run: gradle -Prelease.version=7.3.0 final bintrayUpload
+#      - run: gradle -Prelease.version=7.5.0 final bintrayUpload
+      - run: gradle final bintrayUpload
