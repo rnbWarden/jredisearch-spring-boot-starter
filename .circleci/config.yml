@@ -34,7 +34,7 @@ jobs:
             - v1-dependencies-
 
       #      - run: gradle tasks
-      - run: gradle final dependencies
+      - run: gradle dependencies
 
       - save_cache:
           paths:
@@ -45,5 +45,6 @@ jobs:
       - run: gradle test
 
       # bintray upload
-#      - run: gradle -Prelease.version=7.5.0 final bintrayUpload
-      - run: gradle final bintrayUpload
+#      - run: gradle final bintrayUpload
+      - run: gradle -Prelease.useLastTag=true final 
+#      - run: gradle -Prelease.version=7.6.0 final bintrayUpload
