@@ -38,9 +38,10 @@ public class SearchableFieldTest {
                 "+",
                 "=",
                 "~",
-                "\\"
+                "\\",
+                " "
         ).forEach(c -> {
-            assertEquals("field not properly escaped: " + c, ("\\" + c), SearchableField.escapeSpecialCharacters(c));
+            assertEquals("field not properly escaped: '" + c + "'", ("\\" + c), SearchableField.escapeSpecialCharacters(c));
         });
     }
 }

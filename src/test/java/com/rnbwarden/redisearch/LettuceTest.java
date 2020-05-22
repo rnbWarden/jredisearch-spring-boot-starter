@@ -325,4 +325,32 @@ public class LettuceTest {
         assertNotNull(searchResults.getResults().get(0));
         assertEquals(product1, lettuceRediSearchClient.deserialize(searchResults).get(0));
     }
+
+    @Test
+    public void testEscapingValuesWithSpaces() {
+
+        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+
+        ProductEntity product1 = new ProductEntity("id123", "$FALCON 01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))
+                ));
+
+        ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
+                List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+
+        lettuceRediSearchClient.save(product1);
+        lettuceRediSearchClient.save(product2);
+
+        assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
+
+        assertNotNull(lettuceRediSearchClient.findByKey(product1.getPersistenceKey()));
+        assertTrue(lettuceRediSearchClient.findAll(100).hasResults());
+
+        SearchResults<ProductEntity> searchResults = lettuceRediSearchClient.findByFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
+        assertEquals(1, searchResults.getResults().size());
+        assertNotNull(searchResults.getResults().get(0));
+        assertEquals(product1, lettuceRediSearchClient.deserialize(searchResults).get(0));
+    }
 }
