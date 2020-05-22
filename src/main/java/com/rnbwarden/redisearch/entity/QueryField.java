@@ -8,25 +8,27 @@ import java.util.List;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
 
-public class QueryField {
+public class QueryField<E> {
 
-    private SearchableField field;
+    private static final String redisSpecialCharactersRegEx = "([,.<>{}\\[\\]\"':;!@#$%^&*()\\-+=~\\\\]|[&|]{2})";
+
+    private SearchableField<E> field;
     private Collection<String> values;
     private SearchOperator operator;
 
-    public QueryField(SearchableField field, String value) {
+    public QueryField(SearchableField<E> field, String value) {
 
         this(field, singletonList(value), SearchOperator.INTERSECTION);
     }
 
-    public QueryField(SearchableField field, Collection<String> values, SearchOperator operator) {
+    public QueryField(SearchableField<E> field, Collection<String> values, SearchOperator operator) {
 
         this.field = field;
         this.values = values;
         this.operator = operator;
     }
 
-    public void setField(SearchableField field) {
+    public void setField(SearchableField<E> field) {
 
         this.field = field;
     }
@@ -52,6 +54,11 @@ public class QueryField {
         Assert.notNull(values, "Values cannot be null");
 
         String queryValueString = values.stream().collect(joining(operator.getJoinString()));
-        return field.getQuerySyntax(queryValueString);
+        return QueryField.escapeSpecialCharacters(field.getQuerySyntax(queryValueString));
+    }
+
+    public static String escapeSpecialCharacters(String s) {
+
+        return s.replaceAll(redisSpecialCharactersRegEx, "\\\\$1");
     }
 }

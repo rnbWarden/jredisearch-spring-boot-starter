@@ -134,11 +134,12 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
             return null;
         }
         if (!Collection.class.isAssignableFrom(o.getClass())) {
-            return o.toString();
+            return QueryField.escapeSpecialCharacters(o.toString());
         }
         return (String) ((Collection) o).stream()
                 .filter(Objects::nonNull)
                 .map(Object::toString)
+                .map(s -> QueryField.escapeSpecialCharacters((String)s))
                 .collect(joining(","));
     }
 
@@ -294,7 +295,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     protected String buildQueryString(SearchContext<E> searchContext) {
 
-        List<QueryField> queryFields = searchContext.getQueryFields();
+        List<QueryField<E>> queryFields = searchContext.getQueryFields();
         StringBuilder sb = new StringBuilder();
         queryFields.stream()
                 .map(queryField -> format("@%s:%s", queryField.getName(), queryField.getQuerySyntax()))
