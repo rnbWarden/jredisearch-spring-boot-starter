@@ -32,6 +32,12 @@ public abstract class SearchableField<E> {
 
     public String getQuerySyntax(String value) {
 
-        return String.format(querySyntax, value);
+        return String.format(querySyntax, escapeSpecialCharacters(value));
+    }
+
+    private static final String redisSpecialCharactersRegEx = "([,.<>{}\\[\\]\"':;!@#$%^&*()\\-+=~\\\\]|[&|]{2})";
+    public static String escapeSpecialCharacters(String s) {
+
+        return s.replaceAll(redisSpecialCharactersRegEx, "\\\\$1");
     }
 }

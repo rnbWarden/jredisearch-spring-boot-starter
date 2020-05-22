@@ -134,12 +134,12 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
             return null;
         }
         if (!Collection.class.isAssignableFrom(o.getClass())) {
-            return QueryField.escapeSpecialCharacters(o.toString());
+            return SearchableField.escapeSpecialCharacters(o.toString());
         }
         return (String) ((Collection) o).stream()
                 .filter(Objects::nonNull)
                 .map(Object::toString)
-                .map(s -> QueryField.escapeSpecialCharacters((String)s))
+                .map(s -> SearchableField.escapeSpecialCharacters((String)s))
                 .collect(joining(","));
     }
 
