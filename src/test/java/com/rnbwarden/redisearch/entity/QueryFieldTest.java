@@ -6,7 +6,7 @@ import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 
-public class SearchableFieldTest {
+public class QueryFieldTest {
 
     @Test
     public void testEscapeChars() {
@@ -41,7 +41,7 @@ public class SearchableFieldTest {
                 "\\",
                 " "
         ).forEach(c -> {
-            assertEquals("field not properly escaped: '" + c + "'", ("\\" + c), SearchableField.escapeSpecialCharacters(c));
+            assertEquals("field not properly escaped: '" + c + "'", ("\\" + c), QueryField.escapeSpecialCharacters(c));
         });
     }
 }

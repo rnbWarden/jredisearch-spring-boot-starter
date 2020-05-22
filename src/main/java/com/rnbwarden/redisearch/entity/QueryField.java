@@ -10,6 +10,8 @@ import static java.util.stream.Collectors.joining;
 
 public class QueryField<E> {
 
+    private static final String redisSpecialCharactersRegEx = "([,.<>{}\\[\\]\"':;!@#$%^&*()\\-+=~\\\\]|[&|]{2})";
+
     private SearchableField<E> field;
     private Collection<String> values;
     private SearchOperator operator;
@@ -51,7 +53,14 @@ public class QueryField<E> {
         Assert.notNull(operator, "SearchOperator cannot be null");
         Assert.notNull(values, "Values cannot be null");
 
-        String queryValueString = values.stream().collect(joining(operator.getJoinString()));
+        String queryValueString = values.stream()
+                .map(QueryField::escapeSpecialCharacters)
+                .collect(joining(operator.getJoinString()));
         return field.getQuerySyntax(queryValueString);
+    }
+
+    public static String escapeSpecialCharacters(String s) {
+
+        return s.replaceAll(redisSpecialCharactersRegEx, "\\\\$1");
     }
 }

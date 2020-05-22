@@ -257,4 +257,89 @@ public class JedisTest {
         Long keyCount = jedisRediSearchClient.getKeyCount(pagingSearchContext);
         assertEquals(keySize, keyCount, 0);
     }
+
+    @Test
+    public void testEscapingValues() {
+
+        assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
+
+        ProductEntity product1 = new ProductEntity("id123", "$FALCON01$", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))
+                ));
+
+        ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
+                List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+
+        jedisRediSearchClient.save(product1);
+        jedisRediSearchClient.save(product2);
+
+        assertEquals(2, (long) jedisRediSearchClient.getKeyCount());
+
+        assertNotNull(jedisRediSearchClient.findByKey(product1.getPersistenceKey()));
+        assertTrue(jedisRediSearchClient.findAll(100).hasResults());
+
+        SearchResults<ProductEntity> searchResults = jedisRediSearchClient.findByFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
+        assertEquals(1, searchResults.getResults().size());
+        assertNotNull(searchResults.getResults().get(0));
+        assertEquals(product1, jedisRediSearchClient.deserialize(searchResults).get(0));
+    }
+
+    @Test
+    //@Test(expected=IllegalArgumentException.class)
+    public void testEscapingValuesWithBackslash() {
+
+        assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
+
+        ProductEntity product1 = new ProductEntity("id123", "$FALCON\\01$", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))
+                ));
+
+        ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
+                List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+
+        jedisRediSearchClient.save(product1);
+        jedisRediSearchClient.save(product2);
+
+        assertEquals(2, (long) jedisRediSearchClient.getKeyCount());
+
+        assertNotNull(jedisRediSearchClient.findByKey(product1.getPersistenceKey()));
+        assertTrue(jedisRediSearchClient.findAll(100).hasResults());
+
+        SearchResults<ProductEntity> searchResults = jedisRediSearchClient.findByFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
+        assertEquals(1, searchResults.getResults().size());
+        assertNotNull(searchResults.getResults().get(0));
+        assertEquals(product1, jedisRediSearchClient.deserialize(searchResults).get(0));
+    }
+
+    @Test
+    public void testEscapingValuesWithSpaces() {
+
+        assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
+
+        ProductEntity product1 = new ProductEntity("id123", "$FALCON 01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))
+                ));
+
+        ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
+                List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+
+        jedisRediSearchClient.save(product1);
+        jedisRediSearchClient.save(product2);
+
+        assertEquals(2, (long) jedisRediSearchClient.getKeyCount());
+
+        assertNotNull(jedisRediSearchClient.findByKey(product1.getPersistenceKey()));
+        assertTrue(jedisRediSearchClient.findAll(100).hasResults());
+
+        SearchResults<ProductEntity> searchResults = jedisRediSearchClient.findByFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
+        assertEquals(1, searchResults.getResults().size());
+        assertNotNull(searchResults.getResults().get(0));
+        assertEquals(product1, jedisRediSearchClient.deserialize(searchResults).get(0));
+    }
 }
