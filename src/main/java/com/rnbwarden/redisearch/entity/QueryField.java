@@ -10,7 +10,7 @@ import static java.util.stream.Collectors.joining;
 
 public class QueryField<E> {
 
-    private static final String redisSpecialCharactersRegEx = "([,.<>{}\\[\\]\"':;!@#$%^&*()\\-+=~\\\\]|[&|]{2})";
+    private static final String redisSpecialCharactersRegEx = "([,.<>{}\\[\\]\"':;!@#$%^&*()\\-+=~\\\\\\s]|[&|]{2})";
 
     private SearchableField<E> field;
     private Collection<String> values;
