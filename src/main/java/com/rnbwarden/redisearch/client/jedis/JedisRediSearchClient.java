@@ -63,6 +63,21 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
 
         try {
             jRediSearchClient.getInfo();
+            logger.info("checking for new fields for existing ReidSearch schema for index: " + index);
+            getFields().stream()
+                    .map(SearchableJedisField::getField)
+                    .forEach(field -> {
+                        try {
+                            jRediSearchClient.alterIndex(field);
+                        } catch (JedisDataException e) {
+                            if (!e.getMessage().equalsIgnoreCase("Duplicate field in schema")) {
+                                e.printStackTrace();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
+
         } catch (JedisDataException jde) {
             this.jRediSearchClient.createIndex(createSchema(), Client.IndexOptions.defaultOptions());
         }

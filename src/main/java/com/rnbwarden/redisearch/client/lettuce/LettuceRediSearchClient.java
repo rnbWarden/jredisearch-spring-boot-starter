@@ -60,7 +60,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         try {
             uncompressedConnection = rediSearchClient.connect();
             uncompressedConnection.sync().ftInfo(index);
-            alterSortableFields(uncompressedConnection);
+            alterSchema(uncompressedConnection);
         } catch (RedisCommandExecutionException ex) {
             if (uncompressedConnection == null) {
                 throw ex;
@@ -76,15 +76,24 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     }
 
     /**
-     * This is a patch for any existing indexes created before search capability was added to the starter
+     * Alter the existing schema to add any missing fields
      */
-    private void alterSortableFields(StatefulRediSearchConnection<String, String> connection) {
+    private void alterSchema(StatefulRediSearchConnection<String, String> connection) {
 
+        logger.info("checking for new fields for existing ReidSearch schema for index: " + index);
         getFields().stream()
                 .map(SearchableLettuceField::getField)
-                .filter(com.redislabs.lettusearch.index.field.Field::isSortable)
-                .map(com.redislabs.lettusearch.index.field.Field::getName)
-                .forEach(fieldName -> connection.sync().alter(index, fieldName, FieldOptions.builder().sortable(true).build()));
+                .forEach(field -> {
+                    try {
+                        connection.sync().alter(index, field.getName(), FieldOptions.builder().sortable(field.isSortable()).build());
+                    } catch (RedisCommandExecutionException e) {
+                        if (!e.getMessage().equalsIgnoreCase("Duplicate field in schema")) {
+                            e.printStackTrace();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
     private Schema createSchema() {
