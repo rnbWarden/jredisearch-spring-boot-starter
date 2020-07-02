@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static io.redisearch.querybuilder.QueryBuilder.disjunct;
 import static io.redisearch.querybuilder.QueryBuilder.intersect;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
@@ -154,7 +155,14 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     private Query buildQuery(SearchContext<E> searchContext) {
 
         QueryNode node = intersect();
-        searchContext.getQueryFields().forEach(queryField -> node.add(queryField.getName(), queryField.getQuerySyntax()));
+        searchContext.getQueryFields().forEach(queryField -> {
+            if (queryField.isNegated()) {
+                node.add(disjunct(queryField.getName(), queryField.getQuerySyntax()));
+            } else {
+                node.add(queryField.getName(), queryField.getQuerySyntax());
+            }
+        });
+
         Query query = new Query(node.toString());
 
         configureQueryOptions(searchContext, query);

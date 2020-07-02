@@ -15,18 +15,29 @@ public class QueryField<E> {
     private SearchableField<E> field;
     private Collection<String> values;
     private SearchOperator operator;
+    private boolean negated = false;
 
     public QueryField(SearchableField<E> field, String value) {
 
         this(field, singletonList(value), SearchOperator.INTERSECTION);
     }
 
-    public QueryField(SearchableField<E> field, Collection<String> values, SearchOperator operator) {
+    public QueryField(SearchableField<E> field, String value, boolean negated) {
 
+        this(field, singletonList(value), SearchOperator.INTERSECTION, negated);
+    }
+
+    public QueryField(SearchableField<E> field, Collection<String> values, SearchOperator operator) {
         this.field = field;
         this.values = values;
         this.operator = operator;
     }
+
+    public QueryField(SearchableField<E> field, Collection<String> values, SearchOperator operator, boolean negated) {
+        this(field, values, operator);
+        this.negated = negated;
+    }
+
 
     public void setField(SearchableField<E> field) {
 
@@ -46,6 +57,10 @@ public class QueryField<E> {
     public String getName() {
 
         return field.getName();
+    }
+
+    public boolean isNegated() {
+        return negated;
     }
 
     public String getQuerySyntax() {

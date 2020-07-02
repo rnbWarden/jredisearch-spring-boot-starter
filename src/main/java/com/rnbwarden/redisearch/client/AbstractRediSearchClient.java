@@ -298,7 +298,9 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         List<QueryField<E>> queryFields = searchContext.getQueryFields();
         StringBuilder sb = new StringBuilder();
         queryFields.stream()
-                .map(queryField -> format("@%s:%s", queryField.getName(), queryField.getQuerySyntax()))
+                .map(queryField -> queryField.isNegated() ?
+                        format("-@%s:%s", queryField.getName(), queryField.getQuerySyntax()) :
+                        format("@%s:%s", queryField.getName(), queryField.getQuerySyntax()))
                 .forEach(sb::append);
         return sb.toString();
     }
