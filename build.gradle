@@ -53,12 +53,11 @@ dependencies {
 
     compileOnly 'org.springframework.data:spring-data-redis:2.2.6.RELEASE'
     //jedis
-    compileOnly 'redis.clients:jedis:3.2.0'
-    compileOnly 'com.redislabs:jredisearch:1.4.0'
+    compileOnly 'redis.clients:jedis:3.3.0'
+    compileOnly 'com.redislabs:jredisearch:1.7.0'
     //lettuce
-    //    compileOnly project(':lettusearch')
-    compileOnly 'com.redislabs:lettusearch:2.1.0'
-    compileOnly ('com.redislabs:spring-redisearch:2.1.0') {
+    compileOnly 'com.redislabs:lettusearch:2.3.1'
+    compileOnly ('com.redislabs:spring-redisearch:2.3.2') {
         exclude group: 'com.redislabs', module: 'lettusearch'
     }
 
