@@ -11,6 +11,11 @@ It includes functionality for creating RediSearchClients for annotated RediSearc
 
 == Configuration
 Leverages the existing Spring Data Redis properties.
+Additionally, a base package should be specified to indicate which classes to scan.
+Example: 
+----
+redis.search.base-package=com.foo.repository
+----
 
 *Supports both Jedis & Lettuce*
 
