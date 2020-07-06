@@ -44,14 +44,28 @@ public class SearchContext<E> {
         queryFields.add(new QueryField<>(field, value));
     }
 
+    public void addField(SearchableField<E> field, String value, boolean negated) {
+        queryFields.add(new QueryField<>(field, value, negated));
+    }
+
+
     public void addField(SearchableField<E> field, String... values) {
 
         addField(field, Stream.of(values).collect(Collectors.toList()));
     }
 
+    public void addField(SearchableField<E> field, boolean negated, String... values) {
+        addField(field, Stream.of(values).collect(Collectors.toList()), negated);
+    }
+
     public void addField(SearchableField<E> field, Collection<String> values) {
 
         addField(field, SearchOperator.UNION, values);
+    }
+
+    public void addField(SearchableField<E> field, Collection<String> values, boolean negated) {
+
+        addField(field, SearchOperator.UNION, values, negated);
     }
 
     public void addField(SearchableField<E> field, SearchOperator operator, String... values) {
@@ -63,4 +77,10 @@ public class SearchContext<E> {
 
         queryFields.add(new QueryField<>(field, values, operator));
     }
+
+    public void addField(SearchableField<E> field, SearchOperator operator, Collection<String> values, boolean negated) {
+
+        queryFields.add(new QueryField<>(field, values, operator, negated));
+    }
+
 }
