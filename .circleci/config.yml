@@ -46,5 +46,5 @@ jobs:
 
       # bintray upload
 #      - run: gradle final bintrayUpload
-      - run: gradle -Prelease.useLastTag=true final bintrayUpload
-#      - run: gradle -Prelease.version=8.0.0 final bintrayUpload
+#      - run: gradle -Prelease.useLastTag=true final bintrayUpload
+      - run: gradle -Prelease.version=8.0.0 final bintrayUpload
