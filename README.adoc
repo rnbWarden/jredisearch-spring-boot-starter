@@ -34,16 +34,16 @@ For JEDIS
 
 ----
     compile 'org.springframework.data:spring-data-redis:2.2.6.RELEASE'
-    compile 'redis.clients:jedis:3.2.0'
-    compile 'com.redislabs:jredisearch:1.4.0'
+    compile 'redis.clients:jedis:3.3.0'
+    compile 'com.redislabs:jredisearch:1.7.0'
 ----
 
 for LETTUCE
 
 ----
     compile 'org.springframework.data:spring-data-redis:2.2.6.RELEASE'
-    compile 'com.redislabs:lettusearch:2.1.0'
-    compile ('com.redislabs:spring-redisearch:2.1.0') {
+    compile 'com.redislabs:lettusearch:2.3.2'
+    compile ('com.redislabs:spring-redisearch:2.3.2') {
         exclude group: 'com.redislabs', module: 'lettusearch'
     }
 ----
