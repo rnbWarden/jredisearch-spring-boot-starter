@@ -17,6 +17,7 @@ import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import io.lettuce.core.RedisCommandExecutionException;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.support.ConnectionPoolSupport;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
@@ -33,6 +34,7 @@ import static com.redislabs.lettusearch.search.Direction.Descending;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 
+@Slf4j
 public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, SearchableLettuceField<E>> {
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
@@ -165,8 +167,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         Map<String, Object> fields = serialize(entity);
         String key = getQualifiedKey(entity.getPersistenceKey());
-        Document<String, Object> document = Document.<String, Object>builder().field(key, null).build();
-        document.putAll(fields);
+        Document<String, Object> document = Document.<String, Object>builder().id(key).fields(fields).build();
         execute(connection -> {
             return connection.sync().add(index, document, AddOptions.builder().replace(true).build());
         });
@@ -305,10 +306,20 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     private <R> R execute(Function<StatefulRediSearchConnection<String, Object>, R> function) {
 
-        try (StatefulRediSearchConnection<String, Object> connection = pool.borrowObject()) {
+        StatefulRediSearchConnection<String, Object> connection = null;
+        try {
+            connection = pool.borrowObject();
             return function.apply(connection);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            try {
+                if (connection != null) {
+                    pool.returnObject(connection);
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to return connection to pool", e);
+            }
         }
     }
 
