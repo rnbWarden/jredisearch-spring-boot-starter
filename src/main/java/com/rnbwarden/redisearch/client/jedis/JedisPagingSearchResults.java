@@ -54,4 +54,9 @@ public class JedisPagingSearchResults<E extends RedisSearchableEntity> implement
 
         return new JedisPagedSearchResult<>(document.getId(), jedisRediSearchClient, exceptionHandler);
     }
+
+    @Override
+    public void close() throws Exception {
+        // no-op
+    }
 }

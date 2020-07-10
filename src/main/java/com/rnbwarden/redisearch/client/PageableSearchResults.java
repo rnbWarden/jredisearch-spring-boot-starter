@@ -4,7 +4,7 @@ import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 
 import java.util.stream.Stream;
 
-public interface PageableSearchResults<E extends RedisSearchableEntity> {
+public interface PageableSearchResults<E extends RedisSearchableEntity> extends AutoCloseable {
 
     Long getTotalResults();
 

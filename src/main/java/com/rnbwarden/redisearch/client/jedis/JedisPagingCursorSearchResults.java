@@ -71,7 +71,7 @@ public class JedisPagingCursorSearchResults<E extends RedisSearchableEntity> imp
                 .filter(Objects::nonNull);
     }
 
-    private void close() {
+    public void close() {
 
         try {
             if (closeable != null) {

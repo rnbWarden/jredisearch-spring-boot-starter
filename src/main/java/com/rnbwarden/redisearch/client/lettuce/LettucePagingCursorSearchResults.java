@@ -71,7 +71,7 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
                 .filter(Objects::nonNull);
     }
 
-    private void close() {
+    public void close() {
 
         try {
             closeable.close();
@@ -83,7 +83,6 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
     private PagedSearchResult<E> createSearchResult(Map<String, Object> fields) {
 
         try {
-
             E entity = deserializeFunction.apply(fields);
             return new LettucePagedCursorSearchResult<>(entity);
         } catch (Exception e) {
@@ -128,6 +127,9 @@ public class LettucePagingCursorSearchResults<E extends RedisSearchableEntity> i
             synchronized (lockObject) {
                 populateResultsFromAggregateResults(nextPageSupplier.get());
                 hasNext = !results.isEmpty();
+                if (!hasNext) {
+                    close();
+                }
             }
             return results.poll();
         }

@@ -57,4 +57,9 @@ public class LettucePagingSearchResults<E extends RedisSearchableEntity> impleme
 
         return new LettucePagedSearchResult<>(keyPrefix, searchResult.getId(), lettuceRediSearchClient, exceptionConsumer);
     }
+
+    @Override
+    public void close() throws Exception {
+        // no-op
+    }
 }
