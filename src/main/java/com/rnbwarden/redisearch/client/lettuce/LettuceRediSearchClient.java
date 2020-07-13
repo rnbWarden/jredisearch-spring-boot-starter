@@ -306,20 +306,10 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     private <R> R execute(Function<StatefulRediSearchConnection<String, Object>, R> function) {
 
-        StatefulRediSearchConnection<String, Object> connection = null;
-        try {
-            connection = pool.borrowObject();
+        try (StatefulRediSearchConnection<String, Object> connection = pool.borrowObject()) {
             return function.apply(connection);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            try {
-                if (connection != null) {
-                    pool.returnObject(connection);
-                }
-            } catch (Exception e) {
-                logger.warn("Failed to return connection to pool", e);
-            }
         }
     }
 
