@@ -56,6 +56,9 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         if (type == RediSearchFieldType.TAG) {
             return new SearchableJedisTagField<>(name, sortable, serializationFunction);
         }
+        if (type == RediSearchFieldType.NO_INDEX) {
+            return new NonSearchableJedisField<>(name, sortable, serializationFunction);
+        }
         throw new IllegalArgumentException(format("field type '%s' is not supported", type));
     }
 
@@ -66,6 +69,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
             jRediSearchClient.getInfo();
             logger.info("checking for new fields for existing ReidSearch schema for index: " + index);
             getFields().stream()
+                    .filter(SearchableJedisField::isSearchable)
                     .map(SearchableJedisField::getField)
                     .forEach(field -> {
                         try {
@@ -88,6 +92,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
 
         Schema schema = new Schema();
         getFields().stream()
+                .filter(SearchableJedisField::isSearchable)
                 .map(SearchableJedisField::getField)
                 .forEach(schema::addField);
         return schema;

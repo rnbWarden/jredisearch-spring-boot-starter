@@ -38,6 +38,7 @@ public class SearchContext<E> {
     private long limit = DEFAULT_MAX_LIMIT_VALUE;
     @Builder.Default
     private List<QueryField<E>> queryFields = new ArrayList<>();
+    private List<String> resultFields;
 
     public void addField(SearchableField<E> field, String value) {
 
@@ -47,7 +48,6 @@ public class SearchContext<E> {
     public void addField(SearchableField<E> field, String value, boolean negated) {
         queryFields.add(new QueryField<>(field, value, negated));
     }
-
 
     public void addField(SearchableField<E> field, String... values) {
 
@@ -81,6 +81,15 @@ public class SearchContext<E> {
     public void addField(SearchableField<E> field, SearchOperator operator, Collection<String> values, boolean negated) {
 
         queryFields.add(new QueryField<>(field, values, operator, negated));
+    }
+
+    public void addResultField(String fieldName) {
+
+        if (resultFields == null) {
+            resultFields = List.of(fieldName);
+        } else {
+            resultFields.add(fieldName);
+        }
     }
 
 }

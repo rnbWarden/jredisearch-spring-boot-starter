@@ -64,11 +64,11 @@ public class JedisTest {
 
         ProductEntity product1 = new ProductEntity("id123", "FALCON01", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
-                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))));
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))), Collections.emptyList());
 
         ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
                 List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
-                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))), Collections.emptyList());
 
         jedisRediSearchClient.save(product1);
         jedisRediSearchClient.save(product2);
@@ -104,7 +104,7 @@ public class JedisTest {
 
         jedisRediSearchClient.save(new ProductEntity("id123", "FALCON01", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
-                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99")))));
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))), Collections.emptyList()));
 
         saveProductsInRange(max, namePrefix, brand);
 
@@ -137,7 +137,7 @@ public class JedisTest {
 
         jedisRediSearchClient.save(new ProductEntity("id123", "FALCON01", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
-                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99")))));
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))), Collections.emptyList()));
 
         saveProductsInRange(max, namePrefix, brand);
 
@@ -163,7 +163,7 @@ public class JedisTest {
     private void saveProductsInRange(int max, String namePrefix, Brand brand) {
 
         IntStream.range(0, max)/*.parallel()*/.forEach(i -> {
-            ProductEntity product = new ProductEntity("id" + i, namePrefix + i, brand, Collections.emptyList());
+            ProductEntity product = new ProductEntity("id" + i, namePrefix + i, brand, Collections.emptyList(), Collections.emptyList());
             jedisRediSearchClient.save(product);
         });
     }
@@ -193,9 +193,9 @@ public class JedisTest {
         assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
         int max = 1000;
 
-        jedisRediSearchClient.save(new ProductEntity("id-ZZZ01", "ZZZ01", Brand.NIKE, Collections.emptyList()));
+        jedisRediSearchClient.save(new ProductEntity("id-ZZZ01", "ZZZ01", Brand.NIKE, Collections.emptyList(), Collections.emptyList()));
         saveProductsInRange(max - 2, "TEST-", Brand.NIKE);
-        jedisRediSearchClient.save(new ProductEntity("id-AAA01", "AAA01", Brand.NIKE, Collections.emptyList()));
+        jedisRediSearchClient.save(new ProductEntity("id-AAA01", "AAA01", Brand.NIKE, Collections.emptyList(), Collections.emptyList()));
 
         assertEquals(max, jedisRediSearchClient.getKeyCount(), 0);
 
@@ -221,7 +221,7 @@ public class JedisTest {
 
         List<String> keys = new ArrayList<>();
         IntStream.range(1, 100).forEach(i -> {
-            ProductEntity entity = new ProductEntity("zyxwvut" + i, i + "value", Brand.NIKE, emptyList());
+            ProductEntity entity = new ProductEntity("zyxwvut" + i, i + "value", Brand.NIKE, emptyList(), Collections.emptyList());
             keys.add(entity.getPersistenceKey());
             jedisRediSearchClient.save(entity);
         });
@@ -266,11 +266,12 @@ public class JedisTest {
         ProductEntity product1 = new ProductEntity("id123", "$FALCON01$", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
                         new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))
-                ));
+                ), Collections.emptyList());
 
         ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
                 List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
-                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))
+                ), Collections.emptyList());
 
         jedisRediSearchClient.save(product1);
         jedisRediSearchClient.save(product2);
@@ -295,11 +296,12 @@ public class JedisTest {
         ProductEntity product1 = new ProductEntity("id123", "$FALCON\\01$", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
                         new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))
-                ));
+                ), Collections.emptyList());
 
         ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
                 List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
-                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))
+                ), Collections.emptyList());
 
         jedisRediSearchClient.save(product1);
         jedisRediSearchClient.save(product2);
@@ -323,11 +325,12 @@ public class JedisTest {
         ProductEntity product1 = new ProductEntity("id123", "$FALCON 01", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
                         new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))
-                ));
+                ), Collections.emptyList());
 
         ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
                 List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
-                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))
+                ), Collections.emptyList());
 
         jedisRediSearchClient.save(product1);
         jedisRediSearchClient.save(product2);
@@ -341,5 +344,29 @@ public class JedisTest {
         assertEquals(1, searchResults.getResults().size());
         assertNotNull(searchResults.getResults().get(0));
         assertEquals(product1, jedisRediSearchClient.deserialize(searchResults).get(0));
+    }
+
+    @Test
+    public void testNonSearchableFields() {
+
+        assertEquals(0, (long) jedisRediSearchClient.getKeyCount());
+
+        String attribute1 = "includes shoelaces!";
+        ProductEntity product1 = new ProductEntity("id123", "FALCON01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))),
+                List.of(attribute1));
+        jedisRediSearchClient.save(product1);
+
+        assertEquals(1, (long) jedisRediSearchClient.getKeyCount());
+
+        SearchContext<ProductEntity> searchContext = jedisRediSearchClient.getSearchContextWithFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
+        searchContext.addResultField(ProductEntity.ATTRIBUTES);
+
+        SearchResults<ProductEntity> searchResults = jedisRediSearchClient.find(searchContext);
+        assertEquals(1, searchResults.getResults().size());
+        assertNotNull(searchResults.getResults().get(0));
+
+        assertEquals(attribute1, searchResults.getResults().get(0).getFieldValue(ATTRIBUTES));
     }
 }

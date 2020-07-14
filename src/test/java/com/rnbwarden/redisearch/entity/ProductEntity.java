@@ -20,6 +20,7 @@ public class ProductEntity implements RedisSearchableEntity {
     public static final String ARTICLE_NUMBER = "articleNumber";
     public static final String BRAND = "brand";
     public static final String SKUS = "skus";
+    public static final String ATTRIBUTES = "attributes";
 
     private String id;
 
@@ -30,6 +31,9 @@ public class ProductEntity implements RedisSearchableEntity {
     private Brand brand;
 
     private List<SkuEntity> skus;
+
+    @RediSearchField(name = ATTRIBUTES, type = RediSearchFieldType.NO_INDEX)
+    private List<String> attributes;
 
     @Override
     public String getPersistenceKey() {

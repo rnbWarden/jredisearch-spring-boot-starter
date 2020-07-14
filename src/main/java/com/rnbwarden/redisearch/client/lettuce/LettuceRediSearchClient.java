@@ -38,7 +38,7 @@ import static java.util.Optional.ofNullable;
 public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends AbstractRediSearchClient<E, SearchableLettuceField<E>> {
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
-    private com.redislabs.lettusearch.RediSearchClient rediSearchClient;
+    private final com.redislabs.lettusearch.RediSearchClient rediSearchClient;
     private final Supplier<StatefulRediSearchConnection<String, Object>> connectionSupplier;
     private final GenericObjectPool<StatefulRediSearchConnection<String, Object>> pool;
 
@@ -84,6 +84,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         logger.info("checking for new fields for existing ReidSearch schema for index: " + index);
         getFields().stream()
+                .filter(SearchableLettuceField::isSearchable)
                 .map(SearchableLettuceField::getField)
                 .forEach(field -> {
                     try {
@@ -102,6 +103,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         Schema.SchemaBuilder builder = Schema.builder();
         getFields().stream()
+                .filter(SearchableLettuceField::isSearchable)
                 .map(SearchableLettuceField::getField)
                 .forEach(builder::field);
         return builder.build();
@@ -121,6 +123,9 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         }
         if (type == RediSearchFieldType.TAG) {
             return new SearchableLettuceTagField<>(name, sortable, serializationFunction);
+        }
+        if (type == RediSearchFieldType.NO_INDEX) {
+            return new NonSearchableLettuceField<>(name, sortable, serializationFunction);
         }
         throw new IllegalArgumentException(format("field type '%s' is not supported", type));
     }
@@ -252,6 +257,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
                         .direction(searchContext.isSortAscending() ? Ascending : Descending).build()));
         builder.limit(Limit.builder().num(searchContext.getLimit()).offset(searchContext.getOffset()).build());
         builder.noContent(searchContext.isNoContent());
+        Optional.ofNullable(searchContext.getResultFields()).ifPresent(builder::returnFields);
         return builder.build();
     }
 

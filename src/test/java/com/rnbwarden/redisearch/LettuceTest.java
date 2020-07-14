@@ -66,11 +66,15 @@ public class LettuceTest {
 
         ProductEntity product1 = new ProductEntity("id123", "FALCON01", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
-                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))));
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))),
+                Collections.emptyList()
+        );
 
         ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
                 List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
-                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))),
+                Collections.emptyList()
+        );
 
         lettuceRediSearchClient.save(product1);
         lettuceRediSearchClient.save(product2);
@@ -106,7 +110,8 @@ public class LettuceTest {
 
         lettuceRediSearchClient.save(new ProductEntity("id123", "FALCON01", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
-                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99")))));
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))),
+                Collections.emptyList()));
 
         saveProductsInRange(max, namePrefix, brand);
 
@@ -139,7 +144,8 @@ public class LettuceTest {
 
         lettuceRediSearchClient.save(new ProductEntity("id123", "FALCON01", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
-                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99")))));
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))),
+                Collections.emptyList()));
 
         saveProductsInRange(max, namePrefix, brand);
 
@@ -165,7 +171,7 @@ public class LettuceTest {
     private void saveProductsInRange(int max, String namePrefix, Brand brand) {
 
         IntStream.range(0, max)/*.parallel()*/.forEach(i -> {
-            ProductEntity product = new ProductEntity("id" + i, namePrefix + i, brand, Collections.emptyList());
+            ProductEntity product = new ProductEntity("id" + i, namePrefix + i, brand, Collections.emptyList(), Collections.emptyList());
             lettuceRediSearchClient.save(product);
         });
     }
@@ -195,9 +201,9 @@ public class LettuceTest {
         assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
         int max = 1000;
 
-        lettuceRediSearchClient.save(new ProductEntity("id-ZZZ01", "ZZZ01", Brand.NIKE, Collections.emptyList()));
+        lettuceRediSearchClient.save(new ProductEntity("id-ZZZ01", "ZZZ01", Brand.NIKE, Collections.emptyList(), Collections.emptyList()));
         saveProductsInRange(max - 2, "TEST-", Brand.NIKE);
-        lettuceRediSearchClient.save(new ProductEntity("id-AAA01", "AAA01", Brand.NIKE, Collections.emptyList()));
+        lettuceRediSearchClient.save(new ProductEntity("id-AAA01", "AAA01", Brand.NIKE, Collections.emptyList(), Collections.emptyList()));
 
         assertEquals(max, lettuceRediSearchClient.getKeyCount(), 0);
 
@@ -223,7 +229,7 @@ public class LettuceTest {
 
         List<String> keys = new ArrayList<>();
         IntStream.range(1, 100).forEach(i -> {
-            ProductEntity entity = new ProductEntity("zyxwvut" + i, i + "value", Brand.NIKE, emptyList());
+            ProductEntity entity = new ProductEntity("zyxwvut" + i, i + "value", Brand.NIKE, emptyList(), Collections.emptyList());
             keys.add(entity.getPersistenceKey());
             lettuceRediSearchClient.save(entity);
         });
@@ -276,12 +282,13 @@ public class LettuceTest {
 
         ProductEntity product1 = new ProductEntity("id123", "$FALCON01$", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
-                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))
-                ));
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))),
+                Collections.emptyList());
 
         ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
                 List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
-                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))),
+                Collections.emptyList());
 
         lettuceRediSearchClient.save(product1);
         lettuceRediSearchClient.save(product2);
@@ -306,11 +313,11 @@ public class LettuceTest {
         ProductEntity product1 = new ProductEntity("id123", "$FALCON\\01$", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
                         new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))
-                ));
+                ), Collections.emptyList());
 
         ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
                 List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
-                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))), Collections.emptyList());
 
         lettuceRediSearchClient.save(product1);
         lettuceRediSearchClient.save(product2);
@@ -334,11 +341,11 @@ public class LettuceTest {
         ProductEntity product1 = new ProductEntity("id123", "$FALCON 01", Brand.NIKE,
                 List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
                         new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))
-                ));
+                ), Collections.emptyList());
 
         ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
                 List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
-                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))));
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))), Collections.emptyList());
 
         lettuceRediSearchClient.save(product1);
         lettuceRediSearchClient.save(product2);
@@ -352,5 +359,54 @@ public class LettuceTest {
         assertEquals(1, searchResults.getResults().size());
         assertNotNull(searchResults.getResults().get(0));
         assertEquals(product1, lettuceRediSearchClient.deserialize(searchResults).get(0));
+    }
+
+    @Test
+    public void testSearchByFields() {
+
+        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+
+        ProductEntity product1 = new ProductEntity("id123", "FALCON01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))), Collections.emptyList());
+
+        ProductEntity product2 = new ProductEntity("id234", "BLAZE-X", Brand.NIKE,
+                List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
+                        new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))), Collections.emptyList());
+
+        lettuceRediSearchClient.save(product1);
+        lettuceRediSearchClient.save(product2);
+
+        PageableSearchResults<ProductEntity> results = lettuceRediSearchClient.searchByFields(Map.of(BRAND, Brand.NIKE.toString()));
+
+        List<String> keys = results.resultStream()
+                .map(PagedSearchResult::getKey)
+                .collect(Collectors.toList());
+
+        System.out.println("test");
+    }
+
+    @Test
+    public void testNonSearchableFields() {
+
+        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+
+        String attribute1 = "includes shoelaces!";
+        ProductEntity product1 = new ProductEntity("id123", "FALCON01", Brand.NIKE,
+                List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                        new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))),
+                List.of(attribute1));
+        lettuceRediSearchClient.save(product1);
+
+        assertEquals(1, (long) lettuceRediSearchClient.getKeyCount());
+
+        SearchContext<ProductEntity> searchContext = lettuceRediSearchClient.getSearchContextWithFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
+        searchContext.addResultField(ProductEntity.ATTRIBUTES);
+
+        SearchResults<ProductEntity> searchResults = lettuceRediSearchClient.find(searchContext);
+        assertEquals(1, searchResults.getResults().size());
+        assertTrue(searchResults.hasResults());
+
+        searchResults.forEach(result -> assertEquals(attribute1, result.getFieldValue(ATTRIBUTES)));
     }
 }

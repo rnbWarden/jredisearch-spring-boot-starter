@@ -82,19 +82,21 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     private T createSearchableField(Field field, RediSearchField annotation) {
 
-        return createSearchableField(annotation.type(), annotation.name(), annotation.sortable(), e -> getFieldValue(field, e));
+        RediSearchFieldType type = annotation.type();
+        if (type == RediSearchFieldType.NO_INDEX) {
+            return createSearchableField(type, annotation.name(), annotation.sortable(), e -> getFieldValue(field, e, this::getSerializedObjectValue));
+        }
+        return createSearchableField(type, annotation.name(), annotation.sortable(), e -> getFieldValue(field, e, this::getQueryableSerializedObjectValue));
     }
 
-    private String getFieldValue(Field f, E obj) {
+    private String getFieldValue(Field f, E obj, Function<Object, String> valueSerializationFunction) {
 
         try {
             boolean accessible = f.isAccessible();
-
             f.setAccessible(true);
-            Object o = f.get(obj);
+            Object object = f.get(obj);
             f.setAccessible(accessible);
-
-            return getSerializedObjectValue(o);
+            return valueSerializationFunction.apply(object);
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(format("Unable to get RediSearch annotated entity value for entity: %s of class: %s", f.getName(), obj.getClass()), e);
         }
@@ -114,14 +116,18 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     private T createSearchableField(Method method, RediSearchField annotation) {
 
-        return createSearchableField(annotation.type(), annotation.name(), annotation.sortable(), e -> getFieldValue(method, e));
+        RediSearchFieldType type = annotation.type();
+        if (type == RediSearchFieldType.NO_INDEX) {
+            return createSearchableField(type, annotation.name(), annotation.sortable(), e -> getFieldValue(method, e, this::getSerializedObjectValue));
+        }
+        return createSearchableField(type, annotation.name(), annotation.sortable(), e -> getFieldValue(method, e, this::getQueryableSerializedObjectValue));
     }
 
-    private String getFieldValue(Method method, E obj) {
+    private String getFieldValue(Method method, E obj, Function<Object, String> valueSerializationFunction) {
 
         try {
-            Object o = method.invoke(obj, (Object[]) null);
-            return getSerializedObjectValue(o);
+            Object object = method.invoke(obj, (Object[]) null);
+            return valueSerializationFunction.apply(object);
         } catch (Exception ex) {
             throw new RuntimeException(String.format("cannot invoke method:%s on %s", method.getName(), obj.getClass()), ex);
         }
@@ -129,6 +135,22 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
 
     @SuppressWarnings("unchecked")
     private String getSerializedObjectValue(Object o) {
+
+        if (o == null) {
+            return null;
+        }
+        if (!Collection.class.isAssignableFrom(o.getClass())) {
+            return o.toString();
+        }
+        return (String) ((Collection) o).stream()
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .map(String.class::cast)
+                .collect(joining(","));
+    }
+
+    @SuppressWarnings("unchecked")
+    private String getQueryableSerializedObjectValue(Object o) {
 
         if (o == null) {
             return null;

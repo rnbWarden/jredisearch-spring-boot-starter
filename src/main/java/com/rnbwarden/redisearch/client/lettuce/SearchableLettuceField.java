@@ -8,6 +8,7 @@ import java.util.function.Function;
 public abstract class SearchableLettuceField<E> extends SearchableField<E> {
 
     private final Field field;
+    protected boolean isSearchable = true;
 
     SearchableLettuceField(String name,
                            Function<E, String> serializeFunction,
@@ -21,5 +22,10 @@ public abstract class SearchableLettuceField<E> extends SearchableField<E> {
     Field getField() {
 
         return field;
+    }
+
+    boolean isSearchable() {
+
+        return isSearchable;
     }
 }

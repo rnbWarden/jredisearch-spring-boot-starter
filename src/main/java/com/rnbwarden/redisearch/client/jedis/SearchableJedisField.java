@@ -8,6 +8,7 @@ import java.util.function.Function;
 public abstract class SearchableJedisField<E> extends SearchableField<E> {
 
     protected final Schema.Field field;
+    protected boolean isSearchable = true;
 
     SearchableJedisField(String name,
                          Function<E, String> serializeFunction,
@@ -21,5 +22,10 @@ public abstract class SearchableJedisField<E> extends SearchableField<E> {
     Schema.Field getField() {
 
         return field;
+    }
+
+    boolean isSearchable() {
+
+        return isSearchable;
     }
 }
