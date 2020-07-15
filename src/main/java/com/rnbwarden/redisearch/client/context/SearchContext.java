@@ -91,4 +91,14 @@ public class SearchContext<E> {
         resultFields.add(fieldName);
     }
 
+    public void addResultFields(Collection<String> fieldNames) {
+
+        fieldNames.forEach(this::addResultField);
+    }
+
+    public void addResultFields(String... fieldNames) {
+
+        Stream.of(fieldNames).forEach(this::addResultField);
+    }
+
 }
