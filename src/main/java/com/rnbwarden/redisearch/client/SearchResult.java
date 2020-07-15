@@ -11,6 +11,6 @@ public interface SearchResult<K, V> {
     default String getFieldValue(K key) {
 
         byte[] value = (byte[]) getField(key);
-        return value == null? null : new String(value);
+        return value == null ? null : new String(value);
     }
 }
