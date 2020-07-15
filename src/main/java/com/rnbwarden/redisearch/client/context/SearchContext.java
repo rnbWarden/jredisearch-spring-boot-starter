@@ -86,10 +86,9 @@ public class SearchContext<E> {
     public void addResultField(String fieldName) {
 
         if (resultFields == null) {
-            resultFields = List.of(fieldName);
-        } else {
-            resultFields.add(fieldName);
+            resultFields = new ArrayList<>();
         }
+        resultFields.add(fieldName);
     }
 
 }
