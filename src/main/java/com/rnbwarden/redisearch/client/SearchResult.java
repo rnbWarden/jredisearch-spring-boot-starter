@@ -10,6 +10,7 @@ public interface SearchResult<K, V> {
 
     default String getFieldValue(K key) {
 
-        return new String((byte[]) getField(key));
+        byte[] value = (byte[]) getField(key);
+        return value == null? null : new String(value);
     }
 }
