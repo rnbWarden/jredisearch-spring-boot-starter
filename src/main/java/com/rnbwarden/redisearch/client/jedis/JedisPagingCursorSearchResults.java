@@ -100,8 +100,8 @@ public class JedisPagingCursorSearchResults<E extends RedisSearchableEntity> imp
     class ResultsIterator implements Iterator<Map<String, Object>> {
 
         private final Object lockObject = new Object();
-        private volatile boolean hasNext;
-        private volatile ConcurrentLinkedQueue<Map<String, Object>> results = new ConcurrentLinkedQueue<>();
+        private final ConcurrentLinkedQueue<Map<String, Object>> results = new ConcurrentLinkedQueue<>();
+        private volatile boolean hasNext = true;
 
         ResultsIterator(AggregationResult delegate) {
 
@@ -112,7 +112,10 @@ public class JedisPagingCursorSearchResults<E extends RedisSearchableEntity> imp
 
             JedisPagingCursorSearchResults.this.delegate = delegate;
             ofNullable(delegate).map(AggregationResult::getResults).ifPresent(this.results::addAll);
-            hasNext = !results.isEmpty();
+            if (results.isEmpty()) {
+                hasNext = false;
+                close();
+            }
         }
 
         @Override
@@ -129,7 +132,6 @@ public class JedisPagingCursorSearchResults<E extends RedisSearchableEntity> imp
             }
             synchronized (lockObject) {
                 populateResultsFromAggregateResults(nextPageSupplier.get());
-                hasNext = !results.isEmpty();
             }
             return results.poll();
         }
