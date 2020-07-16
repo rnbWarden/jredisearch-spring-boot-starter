@@ -383,7 +383,7 @@ public class LettuceTest {
                 .map(PagedSearchResult::getKey)
                 .collect(Collectors.toList());
 
-        System.out.println("test");
+        //System.out.println("test"); //breakpoint here to validate connection(s) closed via CLIENT LIST on redis server-side
     }
 
     @Test
@@ -409,4 +409,5 @@ public class LettuceTest {
 
         searchResults.forEach(result -> assertEquals(attribute1, result.getFieldValue(ATTRIBUTES)));
     }
+
 }
