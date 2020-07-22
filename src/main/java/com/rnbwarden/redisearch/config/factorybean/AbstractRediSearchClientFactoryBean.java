@@ -6,7 +6,6 @@ import com.rnbwarden.redisearch.client.RediSearchClient;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
@@ -15,9 +14,6 @@ public abstract class AbstractRediSearchClientFactoryBean<E extends RedisSearcha
     @Autowired
     @Qualifier("rediSearchObjectMapper")
     private ObjectMapper rediSearchObjectMapper;
-
-    @Value("${redis.search.defaultResultLimit:1000000}")
-    protected Long defaultMaxResults;
 
     protected Class<E> clazz;
 

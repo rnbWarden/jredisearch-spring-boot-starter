@@ -34,10 +34,9 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
 
     public JedisRediSearchClient(Class<E> clazz,
                                  Client jRediSearchClient,
-                                 RedisSerializer<E> redisSerializer,
-                                 Long defaultMaxResults) {
+                                 RedisSerializer<E> redisSerializer) {
 
-        super(clazz, redisSerializer, defaultMaxResults);
+        super(clazz, redisSerializer);
         this.jRediSearchClient = jRediSearchClient;
         checkAndCreateIndex();
     }
@@ -126,35 +125,29 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
 
     Optional<E> findByQualifiedKey(String key) {
 
-        return performTimedOperation("findByKey",
-                () -> ofNullable(jRediSearchClient.getDocument(key, false))
-                        .map(d -> d.get(SERIALIZED_DOCUMENT))
-                        .map(b -> (byte[]) b)
-                        .map(redisSerializer::deserialize)
-        );
+        return ofNullable(jRediSearchClient.getDocument(key, false))
+                .map(d -> d.get(SERIALIZED_DOCUMENT))
+                .map(b -> (byte[]) b)
+                .map(redisSerializer::deserialize);
     }
 
     @Override
     public List<E> findByKeys(@NonNull Collection<String> keys) {
 
-        return performTimedOperation("findByKeys",
-                () -> {
-                    String[] qualifiedKeys = keys.stream().map(this::getQualifiedKey).toArray(String[]::new);
-                    List<Document> documents = jRediSearchClient.getDocuments(false, qualifiedKeys);
-                    return documents.stream()
-                            .filter(Objects::nonNull)
-                            .map(d -> d.get(SERIALIZED_DOCUMENT))
-                            .map(b -> (byte[]) b)
-                            .map(redisSerializer::deserialize)
-                            .collect(Collectors.toList());
-                }
-        );
+        String[] qualifiedKeys = keys.stream().map(this::getQualifiedKey).toArray(String[]::new);
+        List<Document> documents = jRediSearchClient.getDocuments(false, qualifiedKeys);
+        return documents.stream()
+                .filter(Objects::nonNull)
+                .map(d -> d.get(SERIALIZED_DOCUMENT))
+                .map(b -> (byte[]) b)
+                .map(redisSerializer::deserialize)
+                .collect(Collectors.toList());
     }
 
     @Override
     public SearchResults<E> find(SearchContext<E> context) {
 
-        return performTimedOperation("search", () -> search(buildQuery(context)));
+        return search(buildQuery(context));
     }
 
     private Query buildQuery(SearchContext<E> searchContext) {
@@ -180,7 +173,7 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
             query.setNoContent();
         }
         ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> query.setSortBy(sortBy, searchContext.isSortAscending()));
-        query.limit(Long.valueOf(searchContext.getOffset()).intValue(), Long.valueOf(searchContext.getLimit()).intValue());
+        query.limit(Long.valueOf(searchContext.getOffset()).intValue(), ofNullable(searchContext.getLimit()).orElse(SearchContext.DEFAULT_MAX_LIMIT_VALUE));
     }
 
     @Override
@@ -206,11 +199,9 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
     @Override
     public PageableSearchResults<E> search(PagingSearchContext<E> pagingSearchContext) {
 
-        return performTimedOperation("search", () -> {
-            return pagingSearchContext.isUseClientSidePaging() ?
-                    clientSidePagingSearch(buildQuery(pagingSearchContext), pagingSearchContext) :
-                    aggregateSearch(buildQueryString(pagingSearchContext), pagingSearchContext);
-        });
+        return pagingSearchContext.isUseClientSidePaging() ?
+                clientSidePagingSearch(buildQuery(pagingSearchContext), pagingSearchContext) :
+                aggregateSearch(buildQueryString(pagingSearchContext), pagingSearchContext);
     }
 
     @Override
@@ -221,17 +212,15 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
 
     private JedisPagingSearchResults<E> clientSidePagingSearch(Query query, PagingSearchContext<E> pagingSearchContext) {
 
-        return performTimedOperation("search", () -> {
-            configureQueryOptions(pagingSearchContext, query);
-            return new JedisPagingSearchResults<>(performJedisSearch(query), this, pagingSearchContext.getExceptionHandler());
-        });
+        configureQueryOptions(pagingSearchContext, query);
+        return new JedisPagingSearchResults<>(performJedisSearch(query), this, pagingSearchContext.getExceptionHandler());
     }
 
     @Override
     protected PageableSearchResults<E> aggregateSearch(String queryString, PagingSearchContext<E> searchContext) {
 
         AggregationBuilder aggregationBuilder = new AggregationBuilder(queryString)
-                .limit((int)(searchContext.getLimit()))
+                .limit(ofNullable(searchContext.getLimit()).orElse(Integer.MAX_VALUE))
                 .cursor((int)searchContext.getPageSize(), Integer.MAX_VALUE);
 
         ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> {
@@ -243,19 +232,12 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
 
         int pageSize = (int)searchContext.getPageSize();
 
-        //TODO: devoted connection for cursor. This is required for clustered nodes where cursors are lost
-//        StatefulRediSearchConnection<String, Object> connection = connectionSupplier.get();
-        try {
-            AggregationResult aggregationResult = jRediSearchClient.aggregate(aggregationBuilder);
-            return new JedisPagingCursorSearchResults<>(aggregationResult,
-                    () -> readCursor(aggregationResult.getCursorId(), pageSize),
-                    this::deserialize,
-                    null, //() -> closeCursor(connection, aggregateResults.getCursor()),
-                    searchContext.getExceptionHandler());
-        } catch (Exception e) {
-            //close(connection);
-            throw (e);
-        }
+        AggregationResult aggregationResult = jRediSearchClient.aggregate(aggregationBuilder);
+        return new JedisPagingCursorSearchResults<>(aggregationResult,
+                () -> readCursor(aggregationResult.getCursorId(), pageSize),
+                this::deserialize,
+                null,
+                searchContext.getExceptionHandler());
     }
 
     private AggregationResult readCursor(long cursor, int count) {
@@ -284,17 +266,4 @@ public class JedisRediSearchClient<E extends RedisSearchableEntity> extends Abst
         }
         //close(connection);
     }
-
-    /**
-    private void close(StatefulRediSearchConnection<String, Object> connection) {
-
-        try {
-            if (connection != null && connection.isOpen()) {
-                connection.close();
-            }
-        } catch (Exception e) {
-            logger.warn("Error closing RediSearch connection. " + e.getMessage(), e);
-        }
-    }
-    */
 }

@@ -31,7 +31,7 @@ public class RediSearchJedisClientFactoryBean<E extends RedisSearchableEntity> e
 
         Client client = createClient();
         RedisSerializer<E> redisSerializer = createRedisSerializer();
-        return new JedisRediSearchClient<>(clazz, client, redisSerializer, defaultMaxResults);
+        return new JedisRediSearchClient<>(clazz, client, redisSerializer);
     }
 
     private Client createClient() {

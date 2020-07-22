@@ -51,7 +51,7 @@ public class AbstractRediSearchClientTest {
         protected TestingRSCT(Class<TestingEntity> clazz,
                               RedisSerializer<TestingEntity> redisSerializer,
                               Long defaultMaxResults) {
-            super(clazz, redisSerializer, defaultMaxResults);
+            super(clazz, redisSerializer);
         }
 
         @Override

@@ -15,18 +15,14 @@ import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.entity.RediSearchFieldType;
 import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
 import io.lettuce.core.RedisCommandExecutionException;
-import io.lettuce.core.codec.RedisCodec;
-import io.lettuce.core.support.ConnectionPoolSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.pool2.impl.GenericObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.redislabs.lettusearch.search.Direction.Ascending;
@@ -39,19 +35,16 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     private final Logger logger = LoggerFactory.getLogger(LettuceRediSearchClient.class);
     private final com.redislabs.lettusearch.RediSearchClient rediSearchClient;
-    private final Supplier<StatefulRediSearchConnection<String, Object>> connectionSupplier;
     private final GenericObjectPool<StatefulRediSearchConnection<String, Object>> pool;
 
     public LettuceRediSearchClient(Class<E> clazz,
-                                   com.redislabs.lettusearch.RediSearchClient rediSearchClient,
-                                   RedisCodec<String, Object> redisCodec,
                                    RedisSerializer<E> redisSerializer,
-                                   Long defaultMaxResults) {
+                                   com.redislabs.lettusearch.RediSearchClient rediSearchClient,
+                                   GenericObjectPool<StatefulRediSearchConnection<String, Object>> pool) {
 
-        super(clazz, redisSerializer, defaultMaxResults);
+        super(clazz, redisSerializer);
         this.rediSearchClient = rediSearchClient;
-        this.connectionSupplier = () -> rediSearchClient.connect(redisCodec);
-        this.pool = ConnectionPoolSupport.createGenericObjectPool(connectionSupplier, new GenericObjectPoolConfig<>());
+        this.pool = pool;
         checkAndCreateIndex();
     }
 
@@ -155,16 +148,16 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
         AggregateOptions aggregateOptions = AggregateOptions.builder().build();
         Cursor cursor = Cursor.builder().count(pageSize).build();
-        long count;
-        try (StatefulRediSearchConnection<String, Object> connection = connectionSupplier.get()) {
+        return execute(connection -> {
+            long count;
             AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, cursor, aggregateOptions);
             count = aggregateResults.size();
             while (aggregateResults.getCursor() != 0) {
                 aggregateResults = readCursor(aggregateResults.getCursor(), pageSize, connection);
                 count += aggregateResults.size();
             }
-        }
-        return count;
+            return count;
+        });
     }
 
     @Override
@@ -173,9 +166,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         Map<String, Object> fields = serialize(entity);
         String key = getQualifiedKey(entity.getPersistenceKey());
         Document<String, Object> document = Document.<String, Object>builder().id(key).fields(fields).build();
-        execute(connection -> {
-            return connection.sync().add(index, document, AddOptions.builder().replace(true).build());
-        });
+        execute(connection -> connection.sync().add(index, document, AddOptions.builder().replace(true).build()));
     }
 
     @Override
@@ -192,11 +183,10 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     Optional<E> findByQualifiedKey(String key) {
 
-        return performTimedOperation("findByKey",
-                () -> ofNullable(getByKey(key))
-                        .map(map -> map.get(SERIALIZED_DOCUMENT))
-                        .map(byte[].class::cast)
-                        .map(redisSerializer::deserialize));
+        return ofNullable(getByKey(key))
+                .map(map -> map.get(SERIALIZED_DOCUMENT))
+                .map(byte[].class::cast)
+                .map(redisSerializer::deserialize);
     }
 
     private Map<String, Object> getByKey(String key) {
@@ -211,16 +201,13 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     @Override
     public List<E> findByKeys(Collection<String> keys) {
 
-        return performTimedOperation("findByKeys",
-                () -> {
-                    String[] qualifiedKeys = keys.stream().map(this::getQualifiedKey).toArray(String[]::new);
-                    return getByKeys(qualifiedKeys).stream()
-                            .filter(Objects::nonNull)
-                            .map(map -> map.get(SERIALIZED_DOCUMENT))
-                            .map(byte[].class::cast)
-                            .map(redisSerializer::deserialize)
-                            .collect(Collectors.toList());
-                });
+        String[] qualifiedKeys = keys.stream().map(this::getQualifiedKey).toArray(String[]::new);
+        return getByKeys(qualifiedKeys).stream()
+                .filter(Objects::nonNull)
+                .map(map -> map.get(SERIALIZED_DOCUMENT))
+                .map(byte[].class::cast)
+                .map(redisSerializer::deserialize)
+                .collect(Collectors.toList());
     }
 
     private List<Map<String, Object>> getByKeys(String[] qualifiedKeys) {
@@ -235,11 +222,12 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     @Override
     public com.rnbwarden.redisearch.client.SearchResults<E> find(SearchContext<E> searchContext) {
 
-        return performTimedOperation("search", () -> search(buildQueryString(searchContext), searchContext));
+        return search(buildQueryString(searchContext), searchContext);
     }
 
     @Override
-    protected com.rnbwarden.redisearch.client.SearchResults<E> search(String queryString, SearchContext<E> searchContext) {
+    protected com.rnbwarden.redisearch.client.SearchResults<E> search(String queryString,
+                                                                      SearchContext<E> searchContext) {
 
         return execute(connection -> {
             SearchOptions searchOptions = configureQueryOptions(searchContext);
@@ -252,11 +240,9 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     private SearchOptions configureQueryOptions(SearchContext<E> searchContext) {
 
         SearchOptions.SearchOptionsBuilder builder = SearchOptions.builder();
-        Optional.ofNullable(searchContext.getSortBy())
-                .ifPresent(sortBy -> builder.sortBy(SortBy.builder().field(sortBy)
-                        .direction(searchContext.isSortAscending() ? Ascending : Descending).build()));
-        builder.limit(Limit.builder().num(searchContext.getLimit()).offset(searchContext.getOffset()).build());
         builder.noContent(searchContext.isNoContent());
+        Optional.ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> builder.sortBy(SortBy.builder().field(sortBy).direction(searchContext.isSortAscending() ? Ascending : Descending).build()));
+        builder.limit(Limit.builder().num(ofNullable(searchContext.getLimit()).orElse(SearchContext.DEFAULT_MAX_LIMIT_VALUE)).offset(searchContext.getOffset()).build());
         Optional.ofNullable(searchContext.getResultFields()).ifPresent(builder::returnFields);
         return builder.build();
     }
@@ -264,11 +250,12 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     @Override
     public PageableSearchResults<E> search(PagingSearchContext<E> pagingSearchContext) {
 
-        return performTimedOperation("search", () -> pagingSearch(buildQueryString(pagingSearchContext), pagingSearchContext));
+        return pagingSearch(buildQueryString(pagingSearchContext), pagingSearchContext);
     }
 
     @Override
-    protected PageableSearchResults<E> clientSidePagingSearch(String queryString, PagingSearchContext<E> pagingSearchContext) {
+    protected PageableSearchResults<E> clientSidePagingSearch(String queryString,
+                                                              PagingSearchContext<E> pagingSearchContext) {
 
         pagingSearchContext.setNoContent(true); //First query should explicitly avoid retrieving data
         return execute(connection -> {
@@ -283,7 +270,8 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     protected PageableSearchResults<E> aggregateSearch(String queryString, PagingSearchContext<E> searchContext) {
 
         AggregateOptions.AggregateOptionsBuilder aggregateOptionsBuilder = AggregateOptions.builder()
-                .operation(com.redislabs.lettusearch.aggregate.Limit.builder().num(searchContext.getLimit())
+                .operation(com.redislabs.lettusearch.aggregate.Limit.builder()
+                        .num(ofNullable(searchContext.getLimit()).orElse(PagingSearchContext.DEFAULT_MAX_LIMIT_VALUE))
                         .offset(searchContext.getOffset()).build());
 
         ofNullable(searchContext.getSortBy()).ifPresent(sortBy -> {
@@ -296,8 +284,10 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         long pageSize = searchContext.getPageSize();
         Cursor cursor = Cursor.builder().count(pageSize).build();
 
-        StatefulRediSearchConnection<String, Object> connection = connectionSupplier.get();
+        StatefulRediSearchConnection<String, Object> statefulRediSearchConnection = null;
         try {
+            StatefulRediSearchConnection<String, Object> connection = pool.borrowObject();
+            statefulRediSearchConnection = connection;
             AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, cursor, aggregateOptions);
             return new LettucePagingCursorSearchResults<>(aggregateResults,
                     () -> readCursor(aggregateResults.getCursor(), pageSize, connection),
@@ -305,8 +295,8 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
                     () -> closeCursor(connection, aggregateResults.getCursor()),
                     searchContext.getExceptionHandler());
         } catch (Exception e) {
-            close(connection);
-            throw (e);
+            close(statefulRediSearchConnection);
+            throw new RuntimeException(e);
         }
     }
 
@@ -319,7 +309,9 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         }
     }
 
-    private AggregateWithCursorResults<String, Object> readCursor(Long cursor, Long count, StatefulRediSearchConnection<String, Object> connection) {
+    private AggregateWithCursorResults<String, Object> readCursor(Long cursor,
+                                                                  Long count,
+                                                                  StatefulRediSearchConnection<String, Object> connection) {
 
         if (cursor == 0) {
             close(connection);
@@ -350,12 +342,6 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
 
     private void close(StatefulRediSearchConnection<String, Object> connection) {
 
-        try {
-            if (connection != null && connection.isOpen()) {
-                connection.close();
-            }
-        } catch (Exception e) {
-            logger.warn("Error closing RediSearch connection. " + e.getMessage(), e);
-        }
+        pool.returnObject(connection);
     }
 }

@@ -1,9 +1,7 @@
-package com.rnbwarden.redisearch;
+package com.rnbwarden.redisearch.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.PagedSearchResult;
-import com.rnbwarden.redisearch.client.SearchResults;
+import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.client.context.PagingSearchContext;
 import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.client.jedis.JedisRediSearchClient;
@@ -54,7 +52,7 @@ public class JedisTest {
         Class<ProductEntity> clazz = ProductEntity.class;
         RedisSerializer<ProductEntity> redisSerializer = new CompressingJacksonSerializer<>(clazz, new ObjectMapper());
         rediSearchClient = new Client("product", "localhost", 6379);
-        jedisRediSearchClient = new JedisRediSearchClient<>(clazz, rediSearchClient, redisSerializer, 1000L);
+        jedisRediSearchClient = new JedisRediSearchClient<>(clazz, rediSearchClient, redisSerializer);
     }
 
     @Test

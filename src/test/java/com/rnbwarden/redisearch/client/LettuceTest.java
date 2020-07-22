@@ -1,10 +1,9 @@
-package com.rnbwarden.redisearch;
+package com.rnbwarden.redisearch.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
-import com.rnbwarden.redisearch.client.PageableSearchResults;
-import com.rnbwarden.redisearch.client.PagedSearchResult;
-import com.rnbwarden.redisearch.client.SearchResults;
+import com.redislabs.lettusearch.StatefulRediSearchConnection;
+import com.rnbwarden.redisearch.CompressingJacksonSerializer;
 import com.rnbwarden.redisearch.client.context.PagingSearchContext;
 import com.rnbwarden.redisearch.client.context.SearchContext;
 import com.rnbwarden.redisearch.client.lettuce.LettuceRediSearchClient;
@@ -15,6 +14,9 @@ import com.rnbwarden.redisearch.entity.SearchOperator;
 import com.rnbwarden.redisearch.entity.SkuEntity;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
+import io.lettuce.core.support.ConnectionPoolSupport;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,13 +56,13 @@ public class LettuceTest {
 
         RedisSerializer<ProductEntity> redisSerializer = new CompressingJacksonSerializer<>(clazz, objectMapper);
         RedisCodec<String, Object> redisCodec = new RediSearchLettuceClientFactoryBean.LettuceRedisCodec();
-
         RediSearchClient rediSearchClient = RediSearchClient.create(RedisURI.create("localhost", 6379));
-        lettuceRediSearchClient = new LettuceRediSearchClient<>(clazz, rediSearchClient, redisCodec, redisSerializer, 1000L);
+        GenericObjectPool<StatefulRediSearchConnection<String, Object>> pool = ConnectionPoolSupport.createGenericObjectPool(() -> rediSearchClient.connect(redisCodec), new GenericObjectPoolConfig<>());
+        lettuceRediSearchClient = new LettuceRediSearchClient<>(clazz, redisSerializer, rediSearchClient, pool);
     }
 
     @Test
-    public void test() {
+    public void test() throws Exception {
 
         assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
 
@@ -82,7 +84,9 @@ public class LettuceTest {
         assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
 
         assertNotNull(lettuceRediSearchClient.findByKey(product1.getPersistenceKey()));
-        assertTrue(lettuceRediSearchClient.findAll(100).hasResults());
+        try (PageableSearchResults<ProductEntity> results = lettuceRediSearchClient.findAll(100)) {
+            assertTrue(results.hasResults());
+        }
 
         SearchResults<ProductEntity> searchResults = lettuceRediSearchClient.findByFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
         assertEquals(1, searchResults.getResults().size());
@@ -102,7 +106,7 @@ public class LettuceTest {
     @Test
     public void testPaging() {
 
-        int max = 10000;
+        int max = 1028547;
         String namePrefix = "FALCON-";
         Brand brand = Brand.ADIDAS;
 
@@ -177,7 +181,7 @@ public class LettuceTest {
     }
 
     @Test
-    public void testFindAll() {
+    public void testFindAll() throws Exception {
 
         int max = 3726;
         String namePrefix = "FALCON-";
@@ -187,12 +191,13 @@ public class LettuceTest {
         saveProductsInRange(max, namePrefix, brand);
         assertEquals(max, lettuceRediSearchClient.getKeyCount(), 0);
 
-        Set<ProductEntity> products = lettuceRediSearchClient.findAll(1000000).resultStream()
+        try (PageableSearchResults<ProductEntity> results = lettuceRediSearchClient.findAll(1000000)) {
+            Set<ProductEntity> products = results.resultStream()
                 .map(PagedSearchResult::getResult)
                 .map(Optional::get)
                 .collect(Collectors.toSet());
-
-        assertEquals(max, products.size());
+            assertEquals(max, products.size());
+        }
     }
 
     @Test
@@ -276,7 +281,7 @@ public class LettuceTest {
     }
 
     @Test
-    public void testEscapingValues() {
+    public void testEscapingValues() throws Exception {
 
         assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
 
@@ -296,7 +301,9 @@ public class LettuceTest {
         assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
 
         assertNotNull(lettuceRediSearchClient.findByKey(product1.getPersistenceKey()));
-        assertTrue(lettuceRediSearchClient.findAll(100).hasResults());
+        try (PageableSearchResults<ProductEntity> results = lettuceRediSearchClient.findAll(100)) {
+            assertTrue(results.hasResults());
+        }
 
         SearchResults<ProductEntity> searchResults = lettuceRediSearchClient.findByFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
         assertEquals(1, searchResults.getResults().size());
@@ -306,7 +313,7 @@ public class LettuceTest {
 
     @Test
     //@Test(expected=IllegalArgumentException.class)
-    public void testEscapingValuesWithBackslash() {
+    public void testEscapingValuesWithBackslash() throws Exception {
 
         assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
 
@@ -325,7 +332,9 @@ public class LettuceTest {
         assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
 
         assertNotNull(lettuceRediSearchClient.findByKey(product1.getPersistenceKey()));
-        assertTrue(lettuceRediSearchClient.findAll(100).hasResults());
+        try (PageableSearchResults<ProductEntity> results = lettuceRediSearchClient.findAll(100)) {
+            assertTrue(results.hasResults());
+        }
 
         SearchResults<ProductEntity> searchResults = lettuceRediSearchClient.findByFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
         assertEquals(1, searchResults.getResults().size());
@@ -334,7 +343,7 @@ public class LettuceTest {
     }
 
     @Test
-    public void testEscapingValuesWithSpaces() {
+    public void testEscapingValuesWithSpaces() throws Exception {
 
         assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
 
@@ -353,7 +362,9 @@ public class LettuceTest {
         assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
 
         assertNotNull(lettuceRediSearchClient.findByKey(product1.getPersistenceKey()));
-        assertTrue(lettuceRediSearchClient.findAll(100).hasResults());
+        try (PageableSearchResults<ProductEntity> results = lettuceRediSearchClient.findAll(100)) {
+            assertTrue(results.hasResults());
+        }
 
         SearchResults<ProductEntity> searchResults = lettuceRediSearchClient.findByFields(Map.of(ARTICLE_NUMBER, product1.getArticleNumber()));
         assertEquals(1, searchResults.getResults().size());
@@ -362,7 +373,7 @@ public class LettuceTest {
     }
 
     @Test
-    public void testSearchByFields() {
+    public void testSearchByFields() throws InterruptedException {
 
         assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
 
@@ -383,7 +394,9 @@ public class LettuceTest {
                 .map(PagedSearchResult::getKey)
                 .collect(Collectors.toList());
 
-        //System.out.println("test"); //breakpoint here to validate connection(s) closed via CLIENT LIST on redis server-side
+        assertEquals(2, keys.size());
+
+        Thread.sleep(1000); //breakpoint here to validate connection(s) closed via CLIENT LIST on redis server-side
     }
 
     @Test

@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 @NoArgsConstructor
 public class SearchContext<E> {
 
-    public static final Long DEFAULT_MAX_LIMIT_VALUE = 1000000L;
+    public static final Integer DEFAULT_MAX_LIMIT_VALUE = 1000000;
 
     private boolean noContent;
     private boolean verbatim;
@@ -35,7 +35,7 @@ public class SearchContext<E> {
     @Builder.Default
     private long offset = 0L;
     @Builder.Default
-    private long limit = DEFAULT_MAX_LIMIT_VALUE;
+    private Integer limit = null;
     @Builder.Default
     private List<QueryField<E>> queryFields = new ArrayList<>();
     private List<String> resultFields;

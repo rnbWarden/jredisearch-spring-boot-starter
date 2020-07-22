@@ -8,14 +8,12 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
-import org.springframework.util.StopWatch;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -30,7 +28,6 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected static final String ALL_QUERY = "*";
 
     private final Logger logger = LoggerFactory.getLogger(AbstractRediSearchClient.class);
-    protected final Long defaultMaxResults;
     protected final String index;
     protected final String keyPrefix;
 
@@ -39,12 +36,10 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     private final Class<E> clazz;
 
     protected AbstractRediSearchClient(Class<E> clazz,
-                                       RedisSerializer<E> redisSerializer,
-                                       Long defaultMaxResults) {
+                                       RedisSerializer<E> redisSerializer) {
 
         this.clazz = clazz;
         this.redisSerializer = redisSerializer;
-        this.defaultMaxResults = defaultMaxResults;
         this.index = getIndex(clazz);
         this.keyPrefix = format("%s:", index);
         initSearchableFields(clazz);
@@ -161,7 +156,7 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
         return (String) ((Collection) o).stream()
                 .filter(Objects::nonNull)
                 .map(Object::toString)
-                .map(s -> QueryField.escapeSpecialCharacters((String)s))
+                .map(s -> QueryField.escapeSpecialCharacters((String) s))
                 .collect(joining(","));
     }
 
@@ -200,11 +195,9 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     @Override
     public Long getKeyCount() {
 
-        return performTimedOperation("keyCount", () -> {
-            SearchContext searchContext = SearchContext.builder().offset(0).limit(0).noContent(true).build();
-            SearchResults<E> searchResults = search(ALL_QUERY, searchContext);
-            return searchResults.getTotalResults();
-        });
+        SearchContext<E> searchContext = SearchContext.<E>builder().offset(0).limit(0).noContent(true).build();
+        SearchResults<E> searchResults = search(ALL_QUERY, searchContext);
+        return searchResults.getTotalResults();
     }
 
     @Override
@@ -231,22 +224,6 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     public E deserialize(Map<String, Object> fields) {
 
         return redisSerializer.deserialize((byte[]) fields.get(SERIALIZED_DOCUMENT));
-    }
-
-    /**
-     * Simple method to handle the stopWatch and logging requirements around a given RedisClient operation
-     */
-    protected <N> N performTimedOperation(String name, Supplier<N> supplier) {
-
-        StopWatch stopWatch = new StopWatch(name);
-        stopWatch.start();
-
-        N entity = supplier.get();
-
-        stopWatch.stop();
-        logger.debug("{}", stopWatch.prettyPrint());
-
-        return entity;
     }
 
     public static String getIndex(Class<?> clazz) {
@@ -287,14 +264,14 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     public PageableSearchResults<E> findAll(Integer limit) {
 
         PagingSearchContext<E> pagingSearchContext = new PagingSearchContext<>();
-        pagingSearchContext.setLimit(Long.valueOf(ofNullable(limit).orElse(defaultMaxResults.intValue())));
+        ofNullable(limit).ifPresent(pagingSearchContext::setLimit);
         return findAll(pagingSearchContext);
     }
 
     @Override
     public PageableSearchResults<E> findAll(PagingSearchContext<E> pagingSearchContext) {
 
-        return performTimedOperation("findAll", () -> pagingSearch(ALL_QUERY, pagingSearchContext));
+        return pagingSearch(ALL_QUERY, pagingSearchContext);
     }
 
     protected abstract SearchResults<E> search(String queryString, SearchContext<E> searchContext);
@@ -307,8 +284,12 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
                 clientSidePagingSearch(queryString, pagingSearchContext) :
                 aggregateSearch(queryString, pagingSearchContext);
     }
-    protected abstract PageableSearchResults<E> clientSidePagingSearch(String queryString, PagingSearchContext<E> pagingSearchContext);
-    protected abstract PageableSearchResults<E> aggregateSearch(String queryString, PagingSearchContext<E> searchContext);
+
+    protected abstract PageableSearchResults<E> clientSidePagingSearch(String queryString,
+                                                                       PagingSearchContext<E> pagingSearchContext);
+
+    protected abstract PageableSearchResults<E> aggregateSearch(String queryString,
+                                                                PagingSearchContext<E> searchContext);
 
     protected String getQualifiedKey(String key) {
 
