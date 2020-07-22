@@ -51,21 +51,13 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     @Override
     protected void checkAndCreateIndex() {
 
-        StatefulRediSearchConnection<String, String> uncompressedConnection = null;
         try {
-            uncompressedConnection = rediSearchClient.connect();
-            uncompressedConnection.sync().ftInfo(index);
-            alterSchema(uncompressedConnection);
+            logger.info("checking RediSearch index: {}", index);
+            getFtInfo();
+            alterSchema();
         } catch (RedisCommandExecutionException ex) {
-            if (uncompressedConnection == null) {
-                throw ex;
-            }
             if (ex.getCause().getMessage().equals("Unknown Index name")) {
-                uncompressedConnection.sync().create(index, createSchema(), CreateOptions.builder().build());
-            }
-        } finally {
-            if (uncompressedConnection != null) {
-                uncompressedConnection.close();
+                execute(connection -> connection.sync().create(index, createSchema(), CreateOptions.builder().build()));
             }
         }
     }
@@ -73,14 +65,14 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     /**
      * Alter the existing schema to add any missing fields
      */
-    private void alterSchema(StatefulRediSearchConnection<String, String> connection) {
+    private void alterSchema() {
 
-        logger.info("checking for new fields for existing ReidSearch schema for index: " + index);
+        logger.info("checking for new fields & options for existing ReidSearch schema for index: {}", index);
         getFields().stream()
                 .filter(SearchableLettuceField::isSearchable)
                 .map(SearchableLettuceField::getField)
                 .forEach(field -> {
-                    try {
+                    try (StatefulRediSearchConnection<String, String> connection = rediSearchClient.connect()) {
                         connection.sync().alter(index, field.getName(), FieldOptions.builder().sortable(field.isSortable()).build());
                     } catch (RedisCommandExecutionException e) {
                         if (!e.getMessage().equalsIgnoreCase("Duplicate field in schema")) {
@@ -134,30 +126,35 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     @Override
     public Long getKeyCount() {
 
-        return getKeyCount(ALL_QUERY, 10000L);
+        Map<String, Object> ftInfoMap = getFtInfo();
+        return Long.valueOf((String)ftInfoMap.get("num_docs"));
+    }
+
+    public Map<String, Object> getFtInfo() {
+
+        Map<String, Object> ftInfoMap = new HashMap<>();
+        try (StatefulRediSearchConnection<String, String> connection = rediSearchClient.connect()) {
+            Iterator<Object> ftInfoIter = connection.sync().ftInfo(index).iterator();
+            while (ftInfoIter.hasNext()) {
+                ftInfoMap.put((String)ftInfoIter.next(), ftInfoIter.next());
+            }
+        }
+        return ftInfoMap;
     }
 
     @Override
     public Long getKeyCount(PagingSearchContext<E> pagingSearchContext) {
 
         String queryString = buildQueryString(pagingSearchContext);
-        return getKeyCount(queryString, pagingSearchContext.getPageSize());
-    }
-
-    private Long getKeyCount(String queryString, long pageSize) {
-
         AggregateOptions aggregateOptions = AggregateOptions.builder().build();
-        Cursor cursor = Cursor.builder().count(pageSize).build();
-        return execute(connection -> {
-            long count;
-            AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, cursor, aggregateOptions);
-            count = aggregateResults.size();
-            while (aggregateResults.getCursor() != 0) {
-                aggregateResults = readCursor(aggregateResults.getCursor(), pageSize, connection);
-                count += aggregateResults.size();
-            }
-            return count;
-        });
+        Cursor cursor = Cursor.builder().count(pagingSearchContext.getPageSize()).build();
+        AggregateWithCursorResults<String, Object> aggregateResults =  execute(connection -> connection.sync().aggregate(index, queryString, cursor, aggregateOptions));
+        long count = aggregateResults.size();
+        while (aggregateResults.getCursor() != 0) {
+            aggregateResults = readCursor(aggregateResults.getCursor(), pagingSearchContext.getPageSize());
+            count += aggregateResults.size();
+        }
+        return count;
     }
 
     @Override
@@ -257,11 +254,10 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     protected PageableSearchResults<E> clientSidePagingSearch(String queryString,
                                                               PagingSearchContext<E> pagingSearchContext) {
 
-        pagingSearchContext.setNoContent(true); //First query should explicitly avoid retrieving data
         return execute(connection -> {
-            SearchOptions lettusearchOptions = configureQueryOptions(pagingSearchContext);
-            SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, lettusearchOptions);
-            logger.debug("found count {}", searchResults.getCount());
+            pagingSearchContext.setNoContent(true); //First query should explicitly avoid retrieving data
+            SearchOptions searchOptions = configureQueryOptions(pagingSearchContext);
+            SearchResults<String, Object> searchResults = connection.sync().search(index, queryString, searchOptions);
             return new LettucePagingSearchResults<>(keyPrefix, searchResults, this, pagingSearchContext.getExceptionHandler());
         });
     }
@@ -284,20 +280,14 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         long pageSize = searchContext.getPageSize();
         Cursor cursor = Cursor.builder().count(pageSize).build();
 
-        StatefulRediSearchConnection<String, Object> statefulRediSearchConnection = null;
-        try {
-            StatefulRediSearchConnection<String, Object> connection = pool.borrowObject();
-            statefulRediSearchConnection = connection;
+        return execute(connection -> {
             AggregateWithCursorResults<String, Object> aggregateResults = connection.sync().aggregate(index, queryString, cursor, aggregateOptions);
             return new LettucePagingCursorSearchResults<>(aggregateResults,
-                    () -> readCursor(aggregateResults.getCursor(), pageSize, connection),
+                    () -> readCursor(aggregateResults.getCursor(), pageSize),
                     this::deserialize,
-                    () -> closeCursor(connection, aggregateResults.getCursor()),
+                    () -> closeCursor(aggregateResults.getCursor()),
                     searchContext.getExceptionHandler());
-        } catch (Exception e) {
-            close(statefulRediSearchConnection);
-            throw new RuntimeException(e);
-        }
+        });
     }
 
     private <R> R execute(Function<StatefulRediSearchConnection<String, Object>, R> function) {
@@ -309,39 +299,32 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
         }
     }
 
-    private AggregateWithCursorResults<String, Object> readCursor(Long cursor,
-                                                                  Long count,
-                                                                  StatefulRediSearchConnection<String, Object> connection) {
+    private AggregateWithCursorResults<String, Object> readCursor(Long cursor, Long count) {
 
         if (cursor == 0) {
-            close(connection);
             return null;
         }
-        try {
-            return connection.sync().cursorRead(index, cursor, count);
-        } catch (RedisCommandExecutionException redisCommandExecutionException) {
-            closeCursor(connection, cursor);
-            if ("Cursor not found".equalsIgnoreCase(redisCommandExecutionException.getMessage())) {
-                return null;
+        return execute(connection -> {
+            try {
+                return connection.sync().cursorRead(index, cursor, count);
+            } catch (RedisCommandExecutionException redisCommandExecutionException) {
+                closeCursor(cursor);
+                if ("Cursor not found".equalsIgnoreCase(redisCommandExecutionException.getMessage())) {
+                    return null;
+                }
+                throw (redisCommandExecutionException);
             }
-            throw (redisCommandExecutionException);
-        }
+        });
     }
 
-    private void closeCursor(StatefulRediSearchConnection<String, Object> connection, Long cursor) {
+    private void closeCursor(Long cursor) {
 
         if (cursor != null) {
             try {
-                connection.async().cursorDelete(index, cursor);
+                execute(connection -> connection.async().cursorDelete(index, cursor));
             } catch (Exception e) {
-                logger.warn("Error closing RediSearch cursor. " + e.getMessage(), e);
+                logger.warn("Cannot close RediSearch cursor. " + e.getMessage(), e);
             }
         }
-        close(connection);
-    }
-
-    private void close(StatefulRediSearchConnection<String, Object> connection) {
-
-        pool.returnObject(connection);
     }
 }
