@@ -1,13 +1,32 @@
 package com.rnbwarden.redisearch.client.lettuce;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
-import com.redislabs.lettusearch.aggregate.*;
+import com.redislabs.lettusearch.aggregate.AggregateOptions;
+import com.redislabs.lettusearch.aggregate.AggregateWithCursorResults;
+import com.redislabs.lettusearch.aggregate.Cursor;
+import com.redislabs.lettusearch.aggregate.Order;
+import com.redislabs.lettusearch.aggregate.Sort;
+import com.redislabs.lettusearch.aggregate.SortProperty;
 import com.redislabs.lettusearch.index.CreateOptions;
 import com.redislabs.lettusearch.index.DropOptions;
 import com.redislabs.lettusearch.index.Schema;
 import com.redislabs.lettusearch.index.field.FieldOptions;
+import com.redislabs.lettusearch.search.AddOptions;
+import com.redislabs.lettusearch.search.Document;
 import com.redislabs.lettusearch.search.Limit;
-import com.redislabs.lettusearch.search.*;
+import com.redislabs.lettusearch.search.SearchOptions;
+import com.redislabs.lettusearch.search.SearchResults;
+import com.redislabs.lettusearch.search.SortBy;
 import com.rnbwarden.redisearch.client.AbstractRediSearchClient;
 import com.rnbwarden.redisearch.client.PageableSearchResults;
 import com.rnbwarden.redisearch.client.context.PagingSearchContext;
@@ -20,10 +39,6 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
-
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static com.redislabs.lettusearch.search.Direction.Ascending;
 import static com.redislabs.lettusearch.search.Direction.Descending;
@@ -57,7 +72,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
             alterSchema();
         } catch (RedisCommandExecutionException ex) {
             if (ex.getCause().getMessage().equals("Unknown Index name")) {
-                execute(connection -> connection.sync().create(index, createSchema(), CreateOptions.builder().build()));
+                execute(connection -> connection.sync().create(index, createSchema(), CreateOptions.<String, Object>builder().build()));
             }
         }
     }
@@ -73,7 +88,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
                 .map(SearchableLettuceField::getField)
                 .forEach(field -> {
                     try (StatefulRediSearchConnection<String, String> connection = rediSearchClient.connect()) {
-                        connection.sync().alter(index, field.getName(), FieldOptions.builder().sortable(field.isSortable()).build());
+                        connection.sync().alter(index, field.getName().toString(), FieldOptions.builder().sortable(field.isSortable()).build());
                     } catch (RedisCommandExecutionException e) {
                         if (!e.getMessage().equalsIgnoreCase("Duplicate field in schema")) {
                             e.printStackTrace();
@@ -84,7 +99,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
                 });
     }
 
-    private Schema createSchema() {
+    private Schema<String> createSchema() {
 
         Schema.SchemaBuilder builder = Schema.builder();
         getFields().stream()
@@ -127,7 +142,7 @@ public class LettuceRediSearchClient<E extends RedisSearchableEntity> extends Ab
     public Long getKeyCount() {
 
         Map<String, Object> ftInfoMap = getFtInfo();
-        return Long.valueOf((String)ftInfoMap.get("num_docs"));
+        return ((Double) ftInfoMap.get("num_docs")).longValue();
     }
 
     public Map<String, Object> getFtInfo() {

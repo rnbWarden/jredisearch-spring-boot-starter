@@ -1,20 +1,30 @@
 package com.rnbwarden.redisearch.client;
 
-import com.rnbwarden.redisearch.client.context.PagingSearchContext;
-import com.rnbwarden.redisearch.client.context.SearchContext;
-import com.rnbwarden.redisearch.entity.*;
-import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.commons.lang3.reflect.MethodUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.serializer.RedisSerializer;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import com.rnbwarden.redisearch.client.context.PagingSearchContext;
+import com.rnbwarden.redisearch.client.context.SearchContext;
+import com.rnbwarden.redisearch.entity.QueryField;
+import com.rnbwarden.redisearch.entity.RediSearchEntity;
+import com.rnbwarden.redisearch.entity.RediSearchField;
+import com.rnbwarden.redisearch.entity.RediSearchFieldType;
+import com.rnbwarden.redisearch.entity.RedisSearchableEntity;
+import com.rnbwarden.redisearch.entity.SearchableField;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.lang3.reflect.MethodUtils;
+import org.springframework.data.redis.serializer.RedisSerializer;
 
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
@@ -27,7 +37,6 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     protected static final String SERIALIZED_DOCUMENT = "sdoc";
     protected static final String ALL_QUERY = "*";
 
-    private final Logger logger = LoggerFactory.getLogger(AbstractRediSearchClient.class);
     protected final String index;
     protected final String keyPrefix;
 
@@ -237,27 +246,29 @@ public abstract class AbstractRediSearchClient<E extends RedisSearchableEntity, 
     }
 
     @Override
-    public SearchContext<E> getSearchContextWithFields(Map<String, String> fieldNameValues) {
+    public SearchContext<E> getSearchContextWithFields(Map<String, String> fieldNameValues,
+                                                       Map<String, Collection<String>> multiValuedFieldsNameValues) {
 
         SearchContext<E> searchContext = new SearchContext<>();
-        fieldNameValues.forEach((name, value) -> searchContext.addField(getField(name), value));
+        ofNullable(fieldNameValues).ifPresent(fnv -> fnv.forEach((name, value) -> searchContext.addField(getField(name), value)));
+        ofNullable(multiValuedFieldsNameValues).ifPresent(fnv -> fnv.forEach((name, values) -> searchContext.addField(getField(name), values)));
         return searchContext;
     }
 
     @Override
-    public SearchContext<E> getSearchContextWithFields(String fieldName, Collection<String> fieldValues) {
+    public PagingSearchContext<E> getPagingSearchContextWithFields(Map<String, String> fieldNameValues,
+                                                                   Map<String, Collection<String>> multiValuedFieldsNameValues) {
 
         PagingSearchContext<E> pagingSearchContext = new PagingSearchContext<>();
-        pagingSearchContext.addField(getField(fieldName), fieldValues);
+        ofNullable(fieldNameValues).ifPresent(fnv -> fnv.forEach((name, value) -> pagingSearchContext.addField(getField(name), value)));
+        ofNullable(multiValuedFieldsNameValues).ifPresent(fnv -> fnv.forEach((name, values) -> pagingSearchContext.addField(getField(name), values)));
         return pagingSearchContext;
     }
 
     @Override
-    public PagingSearchContext<E> getPagingSearchContextWithFields(Map<String, String> fieldNameValues) {
+    public PageableSearchResults<E> findAll() {
 
-        PagingSearchContext<E> pagingSearchContext = new PagingSearchContext<>();
-        fieldNameValues.forEach((name, value) -> pagingSearchContext.addField(getField(name), value));
-        return pagingSearchContext;
+        return findAll(Integer.MAX_VALUE);
     }
 
     @Override
