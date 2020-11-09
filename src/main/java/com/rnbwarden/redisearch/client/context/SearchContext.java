@@ -1,5 +1,11 @@
 package com.rnbwarden.redisearch.client.context;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import com.rnbwarden.redisearch.entity.QueryField;
 import com.rnbwarden.redisearch.entity.SearchOperator;
 import com.rnbwarden.redisearch.entity.SearchableField;
@@ -7,12 +13,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Data
 @Builder
@@ -46,7 +46,13 @@ public class SearchContext<E> {
     }
 
     public void addField(SearchableField<E> field, String value, boolean negated) {
+
         queryFields.add(new QueryField<>(field, value, negated));
+    }
+
+    public void addField(SearchableField<E> field, String value, boolean negated, boolean prefix) {
+
+        queryFields.add(new QueryField<>(field, value, negated, prefix));
     }
 
     public void addField(SearchableField<E> field, String... values) {
@@ -55,6 +61,7 @@ public class SearchContext<E> {
     }
 
     public void addField(SearchableField<E> field, boolean negated, String... values) {
+
         addField(field, Stream.of(values).collect(Collectors.toList()), negated);
     }
 
@@ -66,6 +73,11 @@ public class SearchContext<E> {
     public void addField(SearchableField<E> field, Collection<String> values, boolean negated) {
 
         addField(field, SearchOperator.UNION, values, negated);
+    }
+
+    public void addField(SearchableField<E> field, Collection<String> values, boolean negated, boolean prefix) {
+
+        addField(field, SearchOperator.UNION, values, negated, prefix);
     }
 
     public void addField(SearchableField<E> field, SearchOperator operator, String... values) {
@@ -81,6 +93,11 @@ public class SearchContext<E> {
     public void addField(SearchableField<E> field, SearchOperator operator, Collection<String> values, boolean negated) {
 
         queryFields.add(new QueryField<>(field, values, operator, negated));
+    }
+
+    public void addField(SearchableField<E> field, SearchOperator operator, Collection<String> values, boolean negated, boolean prefix) {
+
+        queryFields.add(new QueryField<>(field, values, operator, negated, prefix));
     }
 
     public void addResultField(String fieldName) {

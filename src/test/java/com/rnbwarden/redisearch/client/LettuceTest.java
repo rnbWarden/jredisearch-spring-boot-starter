@@ -1,5 +1,14 @@
 package com.rnbwarden.redisearch.client;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redislabs.lettusearch.RediSearchClient;
 import com.redislabs.lettusearch.StatefulRediSearchConnection;
@@ -22,11 +31,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import static com.rnbwarden.redisearch.entity.ProductEntity.*;
+import static com.rnbwarden.redisearch.entity.ProductEntity.ARTICLE_NUMBER;
+import static com.rnbwarden.redisearch.entity.ProductEntity.ATTRIBUTES;
+import static com.rnbwarden.redisearch.entity.ProductEntity.BRAND;
+import static com.rnbwarden.redisearch.entity.ProductEntity.SKUS;
 import static java.util.Collections.emptyList;
 import static java.util.function.Function.identity;
 import static org.junit.Assert.assertEquals;
@@ -423,4 +431,58 @@ public class LettuceTest {
         searchResults.forEach(result -> assertEquals(attribute1, result.getFieldValue(ATTRIBUTES)));
     }
 
+    @Test
+    public void testPrefixSearch() throws Exception {
+
+        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+
+        ProductEntity product1 = new ProductEntity("id123", "BLAZE-A", Brand.NIKE,
+                                                   List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                                                           new SkuEntity("f02", Map.of("color", "white", "price", "99.99"))),
+                                                   Collections.emptyList());
+
+        ProductEntity product2 = new ProductEntity("id456", "BLAZE-X", Brand.NIKE,
+                                                   List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
+                                                           new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))),
+                                                   Collections.emptyList());
+
+        lettuceRediSearchClient.save(product1);
+        lettuceRediSearchClient.save(product2);
+        assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
+
+        PagingSearchContext<ProductEntity> pagingSearchContext = new PagingSearchContext<>();
+        pagingSearchContext.addField(lettuceRediSearchClient.getField(ARTICLE_NUMBER), SearchOperator.UNION, List.of("blaze"), false, true);
+
+        long count = lettuceRediSearchClient.search(pagingSearchContext).resultStream().map(PagedSearchResult::getResult).count();
+        assertEquals(2, count);
+    }
+
+    @Test
+    public void testMultiSkuSearch() throws Exception {
+
+        assertEquals(0, (long) lettuceRediSearchClient.getKeyCount());
+
+        ProductEntity product1 = new ProductEntity("id123", "BLAZE-A", Brand.NIKE,
+                                                   List.of(new SkuEntity("f01", Map.of("color", "black", "price", "99.99")),
+                                                           new SkuEntity("f02", Map.of("color", "white", "price", "99.99")),
+                                                           new SkuEntity("f03", Map.of("color", "grey", "price", "99.99")),
+                                                           new SkuEntity("f04", Map.of("color", "pink", "price", "99.99"))),
+                                                   Collections.emptyList());
+
+        ProductEntity product2 = new ProductEntity("id456", "BLAZE-X", Brand.NIKE,
+                                                   List.of(new SkuEntity("b01", Map.of("color", "red", "price", "79.99")),
+                                                           new SkuEntity("b02", Map.of("color", "orange", "price", "79.99"))),
+                                                   Collections.emptyList());
+
+        lettuceRediSearchClient.save(product1);
+        lettuceRediSearchClient.save(product2);
+        assertEquals(2, (long) lettuceRediSearchClient.getKeyCount());
+
+        PagingSearchContext<ProductEntity> pagingSearchContext = new PagingSearchContext<>();
+        pagingSearchContext.setUseClientSidePaging(true);
+        pagingSearchContext.addField(lettuceRediSearchClient.getField(SKUS), List.of("f02", "f04"));
+        PageableSearchResults<ProductEntity> results = lettuceRediSearchClient.search(pagingSearchContext);
+
+        assertEquals(1, results.getTotalResults().intValue());
+    }
 }

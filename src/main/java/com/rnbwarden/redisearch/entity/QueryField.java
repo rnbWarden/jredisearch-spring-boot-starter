@@ -1,9 +1,9 @@
 package com.rnbwarden.redisearch.entity;
 
-import org.springframework.util.Assert;
-
 import java.util.Collection;
 import java.util.List;
+
+import org.springframework.util.Assert;
 
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
@@ -16,6 +16,7 @@ public class QueryField<E> {
     private Collection<String> values;
     private SearchOperator operator;
     private boolean negated = false;
+    private boolean prefix = false;
 
     public QueryField(SearchableField<E> field, String value) {
 
@@ -27,15 +28,28 @@ public class QueryField<E> {
         this(field, singletonList(value), SearchOperator.INTERSECTION, negated);
     }
 
+    public QueryField(SearchableField<E> field, String value, boolean negated, boolean prefix) {
+
+        this(field, singletonList(value), SearchOperator.INTERSECTION, negated, prefix);
+    }
+
     public QueryField(SearchableField<E> field, Collection<String> values, SearchOperator operator) {
+
         this.field = field;
         this.values = values;
         this.operator = operator;
     }
 
     public QueryField(SearchableField<E> field, Collection<String> values, SearchOperator operator, boolean negated) {
+
+        this(field, values, operator, negated, false);
+    }
+
+    public QueryField(SearchableField<E> field, Collection<String> values, SearchOperator operator, boolean negated, boolean prefix) {
+
         this(field, values, operator);
         this.negated = negated;
+        this.prefix = prefix;
     }
 
 
@@ -71,6 +85,9 @@ public class QueryField<E> {
         String queryValueString = values.stream()
                 .map(QueryField::escapeSpecialCharacters)
                 .collect(joining(operator.getJoinString()));
+        if (prefix) {
+            queryValueString = queryValueString + "*";
+        }
         return field.getQuerySyntax(queryValueString);
     }
 
